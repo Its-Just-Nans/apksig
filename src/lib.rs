@@ -4,45 +4,20 @@ use std::io::Seek;
 use std::io::{BufReader, SeekFrom};
 
 mod scheme_v2;
+mod scheme_v3;
+mod utils;
 
-use scheme_v2::SignatureSchemeV2Block;
+use utils::{
+    add_space, to_hexe, MagicNumberDecoder, MyReader, MAGIC, MAGIC_LEN,
+    SIGNATURE_SCHEME_V2_BLOCK_ID, SIGNATURE_SCHEME_V3_BLOCK_ID, VERITY_PADDING_BLOCK_ID,
+};
 
-// macro to add space
-macro_rules! add_space {
-    ($n:expr) => {
-        for _ in 0..$n {
-            print!(" ");
-        }
-    };
-}
-
-use add_space;
-
-const MAGIC: &[u8; 16] = b"APK Sig Block 42";
-const MAGIC_LEN: i64 = MAGIC.len() as i64;
-
-pub fn read_u32(data: &[u8]) -> u32 {
-    let mut buf = [0; 4];
-    buf.copy_from_slice(&data[..4]);
-    u32::from_le_bytes(buf)
-}
-
-pub fn read_u64(data: &[u8]) -> u64 {
-    let mut buf = [0; 8];
-    buf.copy_from_slice(&data[..8]);
-    u64::from_le_bytes(buf)
-}
+use scheme_v2::SignatureSchemeV2;
+use scheme_v3::SignatureSchemeV3;
 
 #[derive(Debug)]
 struct RawData {
-    size: u64,
-    id: u32,
-    data: Vec<u8>,
-}
-
-#[derive(Debug)]
-struct SignatureSchemeV3Block {
-    size: u64,
+    size: usize,
     id: u32,
     data: Vec<u8>,
 }
@@ -50,12 +25,12 @@ struct SignatureSchemeV3Block {
 #[derive(Debug)]
 enum ValueSigningBlock {
     BaseSigningBlock(RawData),
-    SignatureSchemeV2Block(SignatureSchemeV2Block),
-    SignatureSchemeV3Block(SignatureSchemeV3Block),
+    SignatureSchemeV2Block(SignatureSchemeV2),
+    SignatureSchemeV3Block(SignatureSchemeV3),
 }
 
 #[derive(Debug, Default)]
-struct SigningBlock {
+pub struct SigningBlock {
     offset_start: u64,
     offset_end: u64,
     start_size: u64,
@@ -64,63 +39,42 @@ struct SigningBlock {
     magic: [u8; 16],
 }
 
-struct MagicNumberDecoder(u32);
-
-impl std::fmt::Display for MagicNumberDecoder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let str = match self.0 {
-            0x0101 => "RSASSA-PSS with SHA2-256 digest, SHA2-256 MGF1, 32 bytes of salt, trailer: 0xbc",
-            0x0102 => "RSASSA-PSS with SHA2-512 digest, SHA2-512 MGF1, 64 bytes of salt, trailer: 0xbc",
-            0x0103 => "RSASSA-PKCS1-v1_5 with SHA2-256 digest. This is for build systems which require deterministic signatures.",
-            0x0104 => "RSASSA-PKCS1-v1_5 with SHA2-512 digest. This is for build systems which require deterministic signatures.",
-            0x0201 => "ECDSA with SHA2-256 digest",
-            0x0202 => "ECDSA with SHA2-512 digest",
-            0x0301 => "DSA with SHA2-256 digest",
-            // https://android.googlesource.com/platform/tools/apksig/+/master/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java
-            VERITY_PADDING_BLOCK_ID => "VERITY_PADDING_BLOCK_ID",
-            // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
-            0x6dff800d => "SOURCE_STAMP_BLOCK_ID",
-            // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
-            0x9d6303f7 => "PROOF_OF_ROTATION_ATTR_ID",
-            SIGNATURE_SCHEME_V2_BLOCK_ID => "SignatureSchemeV2Block",
-            SIGNATURE_SCHEME_V3_BLOCK_ID => "SignatureSchemeV3Block",
-            _ => "Unknown",
-        };
-        write!(f, "({:#x}, {})", self.0, str)
-    }
-}
-
-const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
-const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;
-const SIGNATURE_SCHEME_V3_BLOCK_ID: u32 = 0xf05368c0;
-
 impl SigningBlock {
-    fn extract<R: Read + Seek>(mut reader: R, file_len: u64, end_offset: u64) -> Result<Self, ()> {
+    pub fn extract<R: Read + Seek>(
+        mut reader: R,
+        file_len: usize,
+        end_offset: u64,
+    ) -> Result<Self, std::io::Error> {
         let file_len = file_len as i64;
         let start_loop = (end_offset as i64) + MAGIC_LEN;
-        let mut sig_block = SigningBlock::default();
         for i in start_loop..file_len {
-            reader.seek(SeekFrom::End(-i)).unwrap();
+            reader.seek(SeekFrom::End(-i))?;
             let mut buf = [0; MAGIC_LEN as usize];
             match reader.read_exact(&mut buf) {
                 Ok(_) => {
                     if &buf == MAGIC {
-                        sig_block.magic = buf;
+                        let mut sig_block = SigningBlock {
+                            magic: buf,
+                            ..Default::default()
+                        };
                         const SIZE_UINT64: i64 = 8;
                         let pos_block_size = i + SIZE_UINT64;
-                        reader.seek(SeekFrom::End(-pos_block_size)).unwrap();
+                        reader.seek(SeekFrom::End(-pos_block_size))?;
                         let mut buf = [0; SIZE_UINT64 as usize];
-                        reader.read_exact(&mut buf).unwrap();
+                        reader.read_exact(&mut buf)?;
+                        println!("{:?}", buf);
+                        println!("{:?}", MAGIC);
                         let block_size = u64::from_le_bytes(buf);
                         sig_block.end_size = block_size;
                         let inner_block_size = block_size - SIZE_UINT64 as u64 - MAGIC_LEN as u64;
                         let full_block = pos_block_size + inner_block_size as i64;
                         let mut vec: Vec<u8> = vec![0; inner_block_size as usize];
-                        reader.seek(SeekFrom::End(-full_block)).unwrap();
-                        reader.read_exact(&mut vec).unwrap();
-                        sig_block.content = SigningBlock::extract_values(&vec);
+                        reader.seek(SeekFrom::End(-full_block))?;
+                        reader.read_exact(&mut vec)?;
+                        println!("{:?}", vec);
+                        sig_block.content = SigningBlock::extract_values(&mut MyReader::new(&vec));
                         let start_block_size = full_block + SIZE_UINT64;
-                        reader.seek(SeekFrom::End(-start_block_size)).unwrap();
+                        reader.seek(SeekFrom::End(-start_block_size))?;
                         sig_block.offset_start = (file_len as u64) - start_block_size as u64;
                         sig_block.offset_end = (file_len as u64) - i as u64 + MAGIC_LEN as u64;
                         let mut buf = [0; SIZE_UINT64 as usize];
@@ -133,47 +87,45 @@ impl SigningBlock {
                 }
                 Err(_) => {
                     println!("Error reading file, {}", i);
-                    return Err(());
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        "Error reading file",
+                    ));
                 }
             }
         }
-        println!(
-            "The magic ({:?} = '{}') is not found",
-            MAGIC,
-            String::from_utf8_lossy(MAGIC)
-        );
-        Err(())
+
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!(
+                "Magic not found\n MAGIC is '{:?}' (binary) and '{}' (string)",
+                MAGIC,
+                String::from_utf8_lossy(MAGIC)
+            ),
+        ))
     }
 
-    fn extract_values(data: &[u8]) -> Vec<ValueSigningBlock> {
+    fn extract_values(data: &mut MyReader) -> Vec<ValueSigningBlock> {
         // println!("Extracting values from {:?}", data);
         let mut blocks = Vec::new();
-        let mut pos = 0;
-        while pos < data.len() {
-            let pair_size = read_u64(&data[pos..pos + 8]);
-            pos += 8;
+        while data.get_pos() < data.len() {
+            let pair_size = data.read_size_u64();
             println!("Pair size: {} bytes", pair_size);
 
-            let pair_id = read_u32(&data[pos..pos + 4]);
-            pos += 4;
+            let pair_id = data.read_u32();
             println!("Pair ID: {} {}", pair_id, MagicNumberDecoder(pair_id));
 
-            let value_length = (pair_size - 4) as usize;
-            let block_value = &data[pos..pos + value_length];
-            pos += value_length;
+            let value_length = pair_size - 4;
+            let block_value = &mut data.as_slice(value_length);
 
             println!("Pair Content:");
             let block_to_add = match pair_id {
                 SIGNATURE_SCHEME_V2_BLOCK_ID => ValueSigningBlock::SignatureSchemeV2Block(
-                    SignatureSchemeV2Block::new(pair_size, pair_id, block_value),
+                    SignatureSchemeV2::new(pair_size, pair_id, block_value),
                 ),
-                SIGNATURE_SCHEME_V3_BLOCK_ID => {
-                    ValueSigningBlock::SignatureSchemeV3Block(SignatureSchemeV3Block {
-                        size: pair_size,
-                        id: pair_id,
-                        data: block_value.to_vec(),
-                    })
-                }
+                SIGNATURE_SCHEME_V3_BLOCK_ID => ValueSigningBlock::SignatureSchemeV3Block(
+                    SignatureSchemeV3::new(pair_size, pair_id, block_value),
+                ),
                 VERITY_PADDING_BLOCK_ID => {
                     add_space!(4);
                     println!("Padding Block of {} bytes", block_value.len());
@@ -195,40 +147,26 @@ impl SigningBlock {
     }
 }
 
-pub fn real_main() -> i32 {
+pub fn real_main() -> Result<i32, Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
     if args.len() < 2 {
         println!("Usage: {} <filename>", args[0]);
-        return 1;
+        return Ok(1);
     }
-    let fname = std::path::Path::new(&*args[1]);
-    let file = fs::File::open(fname).unwrap();
+    let fname = std::path::Path::new(&args[1]);
+    let file = fs::File::open(fname)?;
     let mut reader = BufReader::new(file);
 
-    let file_len = reader.seek(std::io::SeekFrom::End(0)).unwrap();
+    let file_len = reader.seek(std::io::SeekFrom::End(0))? as usize;
     println!("{} length: {} bytes", fname.display(), file_len);
     // find the magic string starting from the end of the file
-    let sig_block = SigningBlock::extract(reader, file_len, 0);
-    match sig_block {
-        Ok(sig_block) => {
-            println!();
-            println!(
-                "APK Signing Block is between {} and {} with a size of {} bytes",
-                sig_block.offset_start,
-                sig_block.offset_end,
-                sig_block.start_size + 8
-            );
-        }
-        Err(_) => {
-            println!("Error extracting the APK Signing Block");
-        }
-    }
-    0
-}
-
-fn to_hexe(data: &[u8]) -> String {
-    data.iter()
-        .map(|b| format!("{:02x}", b).to_string())
-        .collect::<Vec<String>>()
-        .join("")
+    let sig_block = SigningBlock::extract(reader, file_len, 0)?;
+    println!();
+    println!(
+        "APK Signing Block is between {} and {} with a size of {} bytes",
+        sig_block.offset_start,
+        sig_block.offset_end,
+        sig_block.start_size + 8
+    );
+    Ok(0)
 }
