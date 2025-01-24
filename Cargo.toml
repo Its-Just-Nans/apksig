@@ -1,6 +1,11 @@
 [package]
 name = "apksig"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "Decoding the APK Signing Block"
+documentation = "https://docs.rs/apksig"
 license = "MIT"
+readme = "./README.md"
+repository = "https://github.com/Its-Just-Nans/apksig"
+keywords = ["apk", "android", "signing", "signature", "apksig"]
+categories = ["api-bindings", "command-line-utilities"]

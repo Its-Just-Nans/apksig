@@ -1,4 +1,6 @@
-//! macro to add space
+//! # Utils
+
+/// macro to add space
 macro_rules! add_space {
     ($n:expr) => {
         for _ in 0..$n {
@@ -6,16 +8,30 @@ macro_rules! add_space {
         }
     };
 }
-use std::io::Read;
-
 pub(crate) use add_space;
 
-pub const MAGIC: &[u8; 16] = b"APK Sig Block 42";
-pub const MAGIC_LEN: usize = MAGIC.len();
-pub const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
-pub const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;
-pub const SIGNATURE_SCHEME_V3_BLOCK_ID: u32 = 0xf05368c0;
+use crate::SIGNATURE_SCHEME_V2_BLOCK_ID;
+use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
 
+/// Magic number of the APK Signing Block
+pub const MAGIC: &[u8; 16] = b"APK Sig Block 42";
+
+/// Length of the magic number
+pub const MAGIC_LEN: usize = MAGIC.len();
+
+/// Size of a u64
+pub const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
+
+/// Print a hex string up to 20 bytes
+pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {
+    if data.len() > 20 {
+        println!("{}: {}", type_name, to_hexe(&data[..20]));
+    } else {
+        println!("{}: {}", type_name, to_hexe(data));
+    }
+}
+
+/// Convert a slice of bytes to a hex string
 pub(crate) fn to_hexe(data: &[u8]) -> String {
     data.iter()
         .map(|b| format!("{:02x}", b).to_string())
@@ -23,6 +39,7 @@ pub(crate) fn to_hexe(data: &[u8]) -> String {
         .join("")
 }
 
+/// Magic number decoder
 pub struct MagicNumberDecoder(pub u32);
 
 impl std::fmt::Display for MagicNumberDecoder {
@@ -49,12 +66,16 @@ impl std::fmt::Display for MagicNumberDecoder {
     }
 }
 
+/// Reader
 pub struct MyReader {
+    /// Data
     data: Vec<u8>,
+    /// Position
     pos: usize,
 }
 
 impl MyReader {
+    /// Create a new reader
     pub fn new(data: &[u8]) -> Self {
         MyReader {
             data: data.to_vec(),
@@ -62,24 +83,29 @@ impl MyReader {
         }
     }
 
+    /// Get the length of the data
     pub(crate) fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Get the current position
     pub(crate) fn get_pos(&self) -> usize {
         self.pos
     }
 
+    /// Get the data as a vector
     pub(crate) fn to_vec(&self) -> Vec<u8> {
         self.data.clone()
     }
 
+    /// Get the data as a slice
     pub(crate) fn get_to(&mut self, len: usize) -> &[u8] {
         let pos = self.pos;
         self.pos += len;
         &self.data[pos..self.pos]
     }
 
+    /// Get the data as a slice
     pub(crate) fn as_slice(&mut self, end: usize) -> Self {
         let pos = self.pos;
         self.pos += end;
@@ -89,16 +115,20 @@ impl MyReader {
         }
     }
 
+    /// Read a size
     pub(crate) fn read_size(&mut self) -> usize {
         self.read_u32() as usize
     }
 
+    /// Read a u8
     pub(crate) fn read_u32(&mut self) -> u32 {
         let mut buf = [0; 4];
         buf.copy_from_slice(&self.data[self.pos..self.pos + 4]);
         self.pos += 4;
         u32::from_le_bytes(buf)
     }
+
+    /// Read a u64
     pub(crate) fn read_u64(&mut self) -> u64 {
         let mut buf = [0; 8];
         buf.copy_from_slice(&self.data[self.pos..self.pos + 8]);
@@ -106,16 +136,8 @@ impl MyReader {
         u64::from_le_bytes(buf)
     }
 
+    /// Read a size
     pub(crate) fn read_size_u64(&mut self) -> usize {
         self.read_u64() as usize
-    }
-}
-
-impl Read for MyReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let len = std::cmp::min(buf.len(), self.data.len() - self.pos);
-        buf[..len].copy_from_slice(&self.data[self.pos..self.pos + len]);
-        self.pos += len;
-        Ok(len)
     }
 }

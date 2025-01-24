@@ -3,57 +3,96 @@
 
 use crate::add_space;
 use crate::to_hexe;
+use crate::utils::print_hexe;
 use crate::MagicNumberDecoder;
 use crate::MyReader;
 
+/// Signature Scheme V2
+pub const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;
+
+/// The `SignatureSchemeV2` struct represents the V2 signature scheme.
 #[derive(Debug)]
 pub struct SignatureSchemeV2 {
+    /// The size of the signature scheme.
     pub size: usize,
+
+    /// The ID of the signature scheme.
     pub id: u32,
+
+    /// The signers of the signature scheme.
     pub signers: Vec<Signer>,
 }
 
+/// The `Signer` struct represents the signer of the signature scheme.
 #[derive(Debug)]
 pub struct Signer {
+    /// The size of the signer.
     pub size: u32,
+
+    /// The signed data of the signer.
     pub signed_data: SignedData,
+
+    /// The signatures of the signer.
     pub signatures: Vec<Signatures>,
+
+    /// The public key of the signer.
     pub pub_key: Vec<u8>,
 }
 
+/// The `SignedData` struct represents the signed data of the signer.
 #[derive(Debug)]
 pub struct SignedData {
+    /// The digests of the signed data.
     pub digests: Vec<Digest>,
+
+    /// The certificates of the signed data.
     pub certificates: Vec<Certificate>,
+
+    /// The additional attributes of the signed data.
     pub additional_attributes: Vec<TinyRawData>,
 }
 
+/// The `Digest` struct represents the digest of the signed data.
 #[derive(Debug)]
 pub struct Digest {
+    /// The signature algorithm ID of the digest.
     pub signature_algorithm_id: u32,
+
+    /// The digest of the signed data.
     pub digest: Vec<u8>,
 }
 
+/// The `Certificate` struct represents the certificate of the signed data.
 #[derive(Debug)]
 pub struct Certificate {
+    /// The certificate of the signed data.
     pub certificate: Vec<u8>,
 }
 
+/// The `Signatures` struct represents the signatures of the signer.
 #[derive(Debug)]
 pub struct Signatures {
+    /// The size of the signature.
     pub size: usize,
+    /// The signature algorithm ID of the signature.
     pub signature_algorithm_id: u32,
+    /// The signature of the signer.
     pub signature: Vec<u8>,
 }
 
+/// The `TinyRawData` struct represents the tiny raw data of the signed data.
 #[derive(Debug)]
 pub struct TinyRawData {
+    /// The size of the tiny raw data.
     pub size: usize,
+    /// The ID of the tiny raw data.
     pub id: u32,
+    /// The data of the tiny raw data.
     pub data: Vec<u8>,
 }
 
 impl SignatureSchemeV2 {
+    /// Creates a new `SignatureSchemeV2` with the given size, ID, and data.
     pub fn new(size: usize, id: u32, data: &mut MyReader) -> Self {
         Self {
             size,
@@ -62,6 +101,7 @@ impl SignatureSchemeV2 {
         }
     }
 
+    /// Parses the data of the signature scheme.
     fn parse_signed_data(data: &mut MyReader) -> SignedData {
         let mut digests = Vec::new();
         let mut certificates = Vec::new();
@@ -84,13 +124,12 @@ impl SignatureSchemeV2 {
             let digest_size = data.read_size();
             add_space!(20);
             println!("digest_size: {}", digest_size);
-            let mut value = vec![0; digest_size];
-            value.copy_from_slice(data.get_to(digest_size));
+            let digest = data.get_to(digest_size).to_vec();
             add_space!(20);
-            println!("digest: {}", to_hexe(&value));
+            println!("digest: {}", to_hexe(&digest));
             digests.push(Digest {
                 signature_algorithm_id,
-                digest: value,
+                digest,
             })
         }
         let length_certificates = data.read_size();
@@ -101,11 +140,10 @@ impl SignatureSchemeV2 {
             let certificate_size = data.read_size();
             add_space!(16);
             println!("certificate_size: {}", certificate_size);
-            let mut value = vec![0; certificate_size];
-            value.copy_from_slice(data.get_to(certificate_size));
+            let certificate = data.get_to(certificate_size).to_vec();
             add_space!(16);
-            println!("certificate: {:?}...", &value[..20]);
-            certificates.push(Certificate { certificate: value });
+            print_hexe("certificate", &certificate);
+            certificates.push(Certificate { certificate });
         }
         let length_additional_attributes = data.read_size();
         add_space!(12);
@@ -122,14 +160,13 @@ impl SignatureSchemeV2 {
             add_space!(16);
             println!("id: {}", id);
             let size_attribute = additional_attributes_size - 4;
-            let mut value = vec![0; size_attribute];
-            value.copy_from_slice(data.get_to(size_attribute));
+            let attribute_value = data.get_to(size_attribute).to_vec();
             add_space!(16);
-            println!("value: {:?}...", &value[..20]);
+            print_hexe("attribute_value", &attribute_value);
             additional_attributes.push(TinyRawData {
                 size: additional_attributes_size,
                 id,
-                data: value,
+                data: attribute_value,
             });
         }
         SignedData {
@@ -139,6 +176,7 @@ impl SignatureSchemeV2 {
         }
     }
 
+    /// Parses the signatures of the signer.
     fn parse_signatures(data: &mut MyReader) -> Vec<Signatures> {
         let mut signatures = Vec::new();
         while data.get_pos() < data.len() {
@@ -155,10 +193,9 @@ impl SignatureSchemeV2 {
             let signature_size = data.read_size();
             add_space!(16);
             println!("signature_size: {}", signature_size);
-            let mut signature = vec![0; signature_size];
-            signature.copy_from_slice(data.get_to(signature_size));
+            let signature = data.get_to(signature_size).to_vec();
             add_space!(16);
-            println!("signature: {}...", &to_hexe(&signature[..20]));
+            print_hexe("signature", &signature);
             signatures.push(Signatures {
                 size: size_one_signature,
                 signature_algorithm_id,
@@ -168,12 +205,14 @@ impl SignatureSchemeV2 {
         signatures
     }
 
+    /// Parses the public key of the signer.
     fn parse_pub_key(data: &mut MyReader) -> Vec<u8> {
         add_space!(12);
         println!("pub_key: {:}...", to_hexe(data.get_to(20)));
         data.to_vec()
     }
 
+    /// Parses the signers of the signature scheme.
     fn parse_data(data: &mut MyReader) -> Vec<Signer> {
         let size_signers = data.read_size();
         add_space!(4);

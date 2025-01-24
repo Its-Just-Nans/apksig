@@ -1,3 +1,23 @@
+//! # APK Signing Block
+//! This library is used to extract the APK Signing Block from an APK file.
+//!
+//! CLI usage:
+//! ```shell
+//! cargo install apksig
+//! apksig <filename>
+//! ```
+//!
+
+#![deny(
+    missing_docs,
+    clippy::all,
+    clippy::missing_docs_in_private_items,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::cargo
+)]
+#![warn(clippy::multiple_crate_versions)]
+
 use std::fs;
 use std::io::Read;
 use std::io::Seek;
@@ -8,40 +28,69 @@ mod scheme_v3;
 mod utils;
 
 use utils::{add_space, to_hexe, MagicNumberDecoder, MyReader};
-pub use utils::{
-    MAGIC, MAGIC_LEN, SIGNATURE_SCHEME_V2_BLOCK_ID, SIGNATURE_SCHEME_V3_BLOCK_ID,
-    VERITY_PADDING_BLOCK_ID,
-};
+pub use utils::{MAGIC, MAGIC_LEN, VERITY_PADDING_BLOCK_ID};
 
-pub use scheme_v2::SignatureSchemeV2;
-pub use scheme_v3::SignatureSchemeV3;
+pub use scheme_v2::{SignatureSchemeV2, SIGNATURE_SCHEME_V2_BLOCK_ID};
+pub use scheme_v3::{SignatureSchemeV3, SIGNATURE_SCHEME_V3_BLOCK_ID};
 
+/// Size of a u64
+const SIZE_UINT64: usize = 8;
+
+/// Raw data extracted from the APK Signing Block
 #[derive(Debug)]
 pub struct RawData {
+    /// Size of the data
     pub size: usize,
+
+    /// ID of the data
     pub id: u32,
+
+    /// Data
     pub data: Vec<u8>,
 }
 
+/// Value of the APK Signing Block
 #[derive(Debug)]
 pub enum ValueSigningBlock {
+    /// Base Signing Block
     BaseSigningBlock(RawData),
+
+    /// Signature Scheme V2
     SignatureSchemeV2Block(SignatureSchemeV2),
+
+    /// Signature Scheme V3
     SignatureSchemeV3Block(SignatureSchemeV3),
 }
 
+/// APK Signing Block
 #[derive(Debug, Default)]
 pub struct SigningBlock {
+    /// Offset of the start of the block in the file
     pub offset_start: usize,
+
+    /// Offset of the end of the block in the file
     pub offset_end: usize,
+
+    /// Size of block - at the start of the block
     pub start_size: usize,
+
+    /// content_size
     pub content_size: usize,
+
+    /// Content of the block
     pub content: Vec<ValueSigningBlock>,
+
+    /// Size of block - at the end of the block
     pub end_size: usize,
+
+    /// Magic string
     pub magic: [u8; 16],
 }
 
 impl SigningBlock {
+    /// Extract the APK Signing Block from the APK file
+    /// # Errors
+    /// Return an error appends during decoding
     pub fn extract<R: Read + Seek>(
         mut reader: R,
         file_len: usize,
@@ -58,7 +107,7 @@ impl SigningBlock {
                             magic: buf,
                             ..Default::default()
                         };
-                        const SIZE_UINT64: usize = 8;
+
                         let pos_block_size = idx + SIZE_UINT64;
                         reader.seek(SeekFrom::End(-(pos_block_size as i64)))?;
                         let mut buf = [0; SIZE_UINT64];
@@ -77,10 +126,10 @@ impl SigningBlock {
                         sig_block.offset_end = file_len - idx + MAGIC_LEN;
                         sig_block.content_size = inner_block_size;
                         let mut buf = [0; SIZE_UINT64];
-                        reader.read_exact(&mut buf).unwrap();
+                        reader.read_exact(&mut buf)?;
                         let start_block_size = u64::from_le_bytes(buf) as usize;
                         sig_block.start_size = start_block_size;
-                        assert_eq!(sig_block.start_size, sig_block.end_size);
+                        debug_assert_eq!(sig_block.start_size, sig_block.end_size);
                         return Ok(sig_block);
                     }
                 }
@@ -104,6 +153,7 @@ impl SigningBlock {
         ))
     }
 
+    /// Extract the values from the APK Signing Block
     fn extract_values(data: &mut MyReader) -> Vec<ValueSigningBlock> {
         // println!("Extracting values from {:?}", data);
         let mut blocks = Vec::new();
@@ -146,6 +196,9 @@ impl SigningBlock {
     }
 }
 
+/// Main function
+/// # Errors
+/// Return an error if the file cannot be opened
 pub fn real_main() -> Result<i32, Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
     if args.len() < 2 {
