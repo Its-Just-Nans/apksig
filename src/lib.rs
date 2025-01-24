@@ -23,6 +23,7 @@ use std::io::Read;
 use std::io::Seek;
 use std::io::{BufReader, SeekFrom};
 
+mod common;
 mod scheme_v2;
 mod scheme_v3;
 mod utils;
