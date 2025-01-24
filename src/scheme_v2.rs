@@ -8,48 +8,49 @@ use crate::MyReader;
 
 #[derive(Debug)]
 pub struct SignatureSchemeV2 {
-    size: usize,
-    id: u32,
-    signers: Vec<Signer>,
+    pub size: usize,
+    pub id: u32,
+    pub signers: Vec<Signer>,
 }
 
 #[derive(Debug)]
-struct Signer {
-    size: u32,
-    signed_data: SignedData,
-    signatures: Vec<Signatures>,
-    pub_key: Vec<u8>,
+pub struct Signer {
+    pub size: u32,
+    pub signed_data: SignedData,
+    pub signatures: Vec<Signatures>,
+    pub pub_key: Vec<u8>,
 }
 
 #[derive(Debug)]
-struct SignedData {
-    digests: Vec<Digest>,
-    certificates: Vec<Certificate>,
-    additional_attributes: Vec<TinyRawData>,
+pub struct SignedData {
+    pub digests: Vec<Digest>,
+    pub certificates: Vec<Certificate>,
+    pub additional_attributes: Vec<TinyRawData>,
 }
 
 #[derive(Debug)]
-struct Digest {
-    signature_algorithm_id: u32,
-    digest: Vec<u8>,
+pub struct Digest {
+    pub signature_algorithm_id: u32,
+    pub digest: Vec<u8>,
 }
 
 #[derive(Debug)]
-struct Certificate {
-    certificate: Vec<u8>,
+pub struct Certificate {
+    pub certificate: Vec<u8>,
 }
 
 #[derive(Debug)]
-struct Signatures {
-    signature_algorithm_id: u32,
-    signature: Vec<u8>,
+pub struct Signatures {
+    pub size: usize,
+    pub signature_algorithm_id: u32,
+    pub signature: Vec<u8>,
 }
 
 #[derive(Debug)]
-struct TinyRawData {
-    size: usize,
-    id: u32,
-    data: Vec<u8>,
+pub struct TinyRawData {
+    pub size: usize,
+    pub id: u32,
+    pub data: Vec<u8>,
 }
 
 impl SignatureSchemeV2 {
@@ -162,6 +163,7 @@ impl SignatureSchemeV2 {
             add_space!(16);
             println!("signature : {}...", &to_hexe(&signature[..20]));
             signatures.push(Signatures {
+                size: size_one_signature,
                 signature_algorithm_id,
                 signature,
             });

@@ -158,7 +158,7 @@ const BLOCK: [u8; 4096] = [
 mod test {
 
     use super::*;
-    use apksig::SigningBlock;
+    use apksig::{SigningBlock, ValueSigningBlock, MAGIC, MAGIC_LEN};
 
     #[test]
     fn test_signing_block() {
@@ -166,5 +166,36 @@ mod test {
         let reader = std::io::Cursor::new(&BLOCK[..]);
         let sig = SigningBlock::extract(reader, file_len, 0);
         assert!(sig.is_ok());
+        let sig = sig.unwrap();
+        assert_eq!(&sig.magic, MAGIC);
+        let size = BLOCK.len() - 8 - 8 - MAGIC_LEN;
+        assert_eq!(sig.content_size, size);
+        assert_eq!(sig.content.len(), 2);
+        if let ValueSigningBlock::SignatureSchemeV2Block(block) = &sig.content[0] {
+            assert_eq!(block.size, 1314);
+            assert_eq!(block.id, 0x7109871a);
+            assert_eq!(block.signers.len(), 1);
+            let signer = &block.signers[0];
+            assert_eq!(signer.size, 1302);
+            assert_eq!(signer.signed_data.digests.len(), 1);
+            assert_eq!(signer.signed_data.certificates.len(), 1);
+            assert_eq!(signer.signed_data.additional_attributes.len(), 0);
+            assert_eq!(signer.signatures.len(), 1);
+            assert_eq!(signer.pub_key.len(), 294);
+        } else {
+            panic!(
+                "Expected ValueSigningBlock::SignatureSchemeV2Block() but got {:?}",
+                sig.content[0]
+            );
+        }
+        if let ValueSigningBlock::BaseSigningBlock(block) = &sig.content[1] {
+            assert_eq!(block.size, 2734);
+            assert_eq!(block.id, 0x42726577); // padding block
+        } else {
+            panic!(
+                "Expected ValueSigningBlock::BaseSigningBlock() but got {:?}",
+                sig.content[1]
+            );
+        }
     }
 }

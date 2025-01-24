@@ -11,7 +11,7 @@ use std::io::Read;
 pub(crate) use add_space;
 
 pub const MAGIC: &[u8; 16] = b"APK Sig Block 42";
-pub const MAGIC_LEN: i64 = MAGIC.len() as i64;
+pub const MAGIC_LEN: usize = MAGIC.len();
 pub const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
 pub const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;
 pub const SIGNATURE_SCHEME_V3_BLOCK_ID: u32 = 0xf05368c0;
@@ -49,7 +49,7 @@ impl std::fmt::Display for MagicNumberDecoder {
     }
 }
 
-pub(crate) struct MyReader {
+pub struct MyReader {
     data: Vec<u8>,
     pos: usize,
 }

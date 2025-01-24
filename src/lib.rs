@@ -7,23 +7,24 @@ mod scheme_v2;
 mod scheme_v3;
 mod utils;
 
-use utils::{
-    add_space, to_hexe, MagicNumberDecoder, MyReader, MAGIC, MAGIC_LEN,
-    SIGNATURE_SCHEME_V2_BLOCK_ID, SIGNATURE_SCHEME_V3_BLOCK_ID, VERITY_PADDING_BLOCK_ID,
+use utils::{add_space, to_hexe, MagicNumberDecoder, MyReader};
+pub use utils::{
+    MAGIC, MAGIC_LEN, SIGNATURE_SCHEME_V2_BLOCK_ID, SIGNATURE_SCHEME_V3_BLOCK_ID,
+    VERITY_PADDING_BLOCK_ID,
 };
 
-use scheme_v2::SignatureSchemeV2;
-use scheme_v3::SignatureSchemeV3;
+pub use scheme_v2::SignatureSchemeV2;
+pub use scheme_v3::SignatureSchemeV3;
 
 #[derive(Debug)]
-struct RawData {
-    size: usize,
-    id: u32,
-    data: Vec<u8>,
+pub struct RawData {
+    pub size: usize,
+    pub id: u32,
+    pub data: Vec<u8>,
 }
 
 #[derive(Debug)]
-enum ValueSigningBlock {
+pub enum ValueSigningBlock {
     BaseSigningBlock(RawData),
     SignatureSchemeV2Block(SignatureSchemeV2),
     SignatureSchemeV3Block(SignatureSchemeV3),
@@ -31,12 +32,13 @@ enum ValueSigningBlock {
 
 #[derive(Debug, Default)]
 pub struct SigningBlock {
-    offset_start: u64,
-    offset_end: u64,
-    start_size: u64,
-    content: Vec<ValueSigningBlock>,
-    end_size: u64,
-    magic: [u8; 16],
+    pub offset_start: u64,
+    pub offset_end: u64,
+    pub start_size: usize,
+    pub content_size: usize,
+    pub content: Vec<ValueSigningBlock>,
+    pub end_size: usize,
+    pub magic: [u8; 16],
 }
 
 impl SigningBlock {
@@ -46,10 +48,10 @@ impl SigningBlock {
         end_offset: u64,
     ) -> Result<Self, std::io::Error> {
         let file_len = file_len as i64;
-        let start_loop = (end_offset as i64) + MAGIC_LEN;
+        let start_loop = (end_offset as i64) + MAGIC_LEN as i64;
         for i in start_loop..file_len {
             reader.seek(SeekFrom::End(-i))?;
-            let mut buf = [0; MAGIC_LEN as usize];
+            let mut buf = [0; MAGIC_LEN];
             match reader.read_exact(&mut buf) {
                 Ok(_) => {
                     if &buf == MAGIC {
@@ -57,29 +59,30 @@ impl SigningBlock {
                             magic: buf,
                             ..Default::default()
                         };
-                        const SIZE_UINT64: i64 = 8;
-                        let pos_block_size = i + SIZE_UINT64;
+                        const SIZE_UINT64: usize = 8;
+                        let pos_block_size = i + SIZE_UINT64 as i64;
                         reader.seek(SeekFrom::End(-pos_block_size))?;
-                        let mut buf = [0; SIZE_UINT64 as usize];
+                        let mut buf = [0; SIZE_UINT64];
                         reader.read_exact(&mut buf)?;
                         println!("{:?}", buf);
                         println!("{:?}", MAGIC);
-                        let block_size = u64::from_le_bytes(buf);
+                        let block_size = u64::from_le_bytes(buf) as usize;
                         sig_block.end_size = block_size;
-                        let inner_block_size = block_size - SIZE_UINT64 as u64 - MAGIC_LEN as u64;
+                        let inner_block_size = block_size - SIZE_UINT64 - MAGIC_LEN;
                         let full_block = pos_block_size + inner_block_size as i64;
-                        let mut vec: Vec<u8> = vec![0; inner_block_size as usize];
+                        let mut vec: Vec<u8> = vec![0; inner_block_size];
                         reader.seek(SeekFrom::End(-full_block))?;
                         reader.read_exact(&mut vec)?;
                         println!("{:?}", vec);
                         sig_block.content = SigningBlock::extract_values(&mut MyReader::new(&vec));
-                        let start_block_size = full_block + SIZE_UINT64;
+                        let start_block_size = full_block + SIZE_UINT64 as i64;
                         reader.seek(SeekFrom::End(-start_block_size))?;
                         sig_block.offset_start = (file_len as u64) - start_block_size as u64;
                         sig_block.offset_end = (file_len as u64) - i as u64 + MAGIC_LEN as u64;
-                        let mut buf = [0; SIZE_UINT64 as usize];
+                        sig_block.content_size = inner_block_size;
+                        let mut buf = [0; SIZE_UINT64];
                         reader.read_exact(&mut buf).unwrap();
-                        let start_block_size = u64::from_le_bytes(buf);
+                        let start_block_size = u64::from_le_bytes(buf) as usize;
                         sig_block.start_size = start_block_size;
                         assert_eq!(sig_block.start_size, sig_block.end_size);
                         return Ok(sig_block);
