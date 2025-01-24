@@ -32,8 +32,8 @@ pub enum ValueSigningBlock {
 
 #[derive(Debug, Default)]
 pub struct SigningBlock {
-    pub offset_start: u64,
-    pub offset_end: u64,
+    pub offset_start: usize,
+    pub offset_end: usize,
     pub start_size: usize,
     pub content_size: usize,
     pub content: Vec<ValueSigningBlock>,
@@ -45,12 +45,11 @@ impl SigningBlock {
     pub fn extract<R: Read + Seek>(
         mut reader: R,
         file_len: usize,
-        end_offset: u64,
+        end_offset: usize,
     ) -> Result<Self, std::io::Error> {
-        let file_len = file_len as i64;
-        let start_loop = (end_offset as i64) + MAGIC_LEN as i64;
-        for i in start_loop..file_len {
-            reader.seek(SeekFrom::End(-i))?;
+        let start_loop = end_offset + MAGIC_LEN;
+        for idx in start_loop..file_len {
+            reader.seek(SeekFrom::End(-(idx as i64)))?;
             let mut buf = [0; MAGIC_LEN];
             match reader.read_exact(&mut buf) {
                 Ok(_) => {
@@ -60,22 +59,22 @@ impl SigningBlock {
                             ..Default::default()
                         };
                         const SIZE_UINT64: usize = 8;
-                        let pos_block_size = i + SIZE_UINT64 as i64;
-                        reader.seek(SeekFrom::End(-pos_block_size))?;
+                        let pos_block_size = idx + SIZE_UINT64;
+                        reader.seek(SeekFrom::End(-(pos_block_size as i64)))?;
                         let mut buf = [0; SIZE_UINT64];
                         reader.read_exact(&mut buf)?;
                         let block_size = u64::from_le_bytes(buf) as usize;
                         sig_block.end_size = block_size;
                         let inner_block_size = block_size - SIZE_UINT64 - MAGIC_LEN;
-                        let full_block = pos_block_size + inner_block_size as i64;
+                        let full_block = pos_block_size + inner_block_size;
                         let mut vec: Vec<u8> = vec![0; inner_block_size];
-                        reader.seek(SeekFrom::End(-full_block))?;
+                        reader.seek(SeekFrom::End(-(full_block as i64)))?;
                         reader.read_exact(&mut vec)?;
                         sig_block.content = SigningBlock::extract_values(&mut MyReader::new(&vec));
-                        let start_block_size = full_block + SIZE_UINT64 as i64;
-                        reader.seek(SeekFrom::End(-start_block_size))?;
-                        sig_block.offset_start = (file_len as u64) - start_block_size as u64;
-                        sig_block.offset_end = (file_len as u64) - i as u64 + MAGIC_LEN as u64;
+                        let start_block_size = full_block + SIZE_UINT64;
+                        reader.seek(SeekFrom::End(-(start_block_size as i64)))?;
+                        sig_block.offset_start = file_len - start_block_size;
+                        sig_block.offset_end = file_len - idx + MAGIC_LEN;
                         sig_block.content_size = inner_block_size;
                         let mut buf = [0; SIZE_UINT64];
                         reader.read_exact(&mut buf).unwrap();
@@ -86,7 +85,7 @@ impl SigningBlock {
                     }
                 }
                 Err(_) => {
-                    println!("Error reading file, {}", i);
+                    println!("Error reading file, {}", file_len - idx);
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::Other,
                         "Error reading file",
