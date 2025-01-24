@@ -55,7 +55,7 @@ pub struct MyReader {
 }
 
 impl MyReader {
-    pub(crate) fn new(data: &[u8]) -> Self {
+    pub fn new(data: &[u8]) -> Self {
         MyReader {
             data: data.to_vec(),
             pos: 0,

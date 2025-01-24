@@ -2,9 +2,9 @@ use crate::MyReader;
 
 #[derive(Debug)]
 pub struct SignatureSchemeV3 {
-    size: usize,
-    id: u32,
-    data: Vec<u8>,
+    pub size: usize,
+    pub id: u32,
+    pub data: Vec<u8>,
 }
 
 impl SignatureSchemeV3 {

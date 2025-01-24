@@ -64,8 +64,6 @@ impl SigningBlock {
                         reader.seek(SeekFrom::End(-pos_block_size))?;
                         let mut buf = [0; SIZE_UINT64];
                         reader.read_exact(&mut buf)?;
-                        println!("{:?}", buf);
-                        println!("{:?}", MAGIC);
                         let block_size = u64::from_le_bytes(buf) as usize;
                         sig_block.end_size = block_size;
                         let inner_block_size = block_size - SIZE_UINT64 - MAGIC_LEN;
@@ -73,7 +71,6 @@ impl SigningBlock {
                         let mut vec: Vec<u8> = vec![0; inner_block_size];
                         reader.seek(SeekFrom::End(-full_block))?;
                         reader.read_exact(&mut vec)?;
-                        println!("{:?}", vec);
                         sig_block.content = SigningBlock::extract_values(&mut MyReader::new(&vec));
                         let start_block_size = full_block + SIZE_UINT64 as i64;
                         reader.seek(SeekFrom::End(-start_block_size))?;
