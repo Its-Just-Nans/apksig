@@ -1,7 +1,9 @@
 //! # Common types for scheme
 
+use serde::Serialize;
+
 /// The `Digest` struct represents the digest of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Digest {
     /// The signature algorithm ID of the digest.
     pub signature_algorithm_id: u32,
@@ -11,14 +13,14 @@ pub struct Digest {
 }
 
 /// The `Certificate` struct represents the certificate of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Certificate {
     /// The certificate of the signed data.
     pub certificate: Vec<u8>,
 }
 
 /// The `Signatures` struct represents the signatures of the signer.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Signatures {
     /// The size of the signature.
     pub size: usize,
@@ -29,7 +31,7 @@ pub struct Signatures {
 }
 
 /// The `TinyRawData` struct represents the tiny raw data of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct TinyRawData {
     /// The size of the tiny raw data.
     pub size: usize,

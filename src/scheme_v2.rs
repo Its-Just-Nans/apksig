@@ -1,6 +1,8 @@
 //! From
 //! https://source.android.com/docs/security/features/apksigning/v2
 
+use serde::Serialize;
+
 use crate::add_space;
 use crate::common::Certificate;
 use crate::common::Digest;
@@ -15,7 +17,7 @@ use crate::MyReader;
 pub const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;
 
 /// The `SignatureSchemeV2` struct represents the V2 signature scheme.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SignatureSchemeV2 {
     /// The size of the signature scheme.
     pub size: usize,
@@ -28,7 +30,7 @@ pub struct SignatureSchemeV2 {
 }
 
 /// The `Signer` struct represents the signer of the signature scheme.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Signer {
     /// The size of the signer.
     pub size: u32,
@@ -44,7 +46,7 @@ pub struct Signer {
 }
 
 /// The `SignedData` struct represents the signed data of the signer.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SignedData {
     /// The digests of the signed data.
     pub digests: Vec<Digest>,

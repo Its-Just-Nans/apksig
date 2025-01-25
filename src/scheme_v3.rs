@@ -1,6 +1,8 @@
 //! From
 //! https://source.android.com/docs/security/features/apksigning/v3
 
+use serde::Serialize;
+
 use crate::{
     common::{Certificate, Digest, Signatures, TinyRawData},
     utils::{add_space, print_hexe, to_hexe, MagicNumberDecoder},
@@ -14,7 +16,7 @@ pub const SIGNATURE_SCHEME_V3_BLOCK_ID: u32 = 0xf05368c0;
 pub const PROOF_OF_ROTATION_BLOCK_ID: u32 = 0x3ba06f8c;
 
 /// SignatureSchemeV3
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SignatureSchemeV3 {
     /// size
     pub size: usize,
@@ -27,7 +29,7 @@ pub struct SignatureSchemeV3 {
 }
 
 /// The `Signer` struct represents the signer of the signature scheme.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Signer {
     /// The size of the signer.
     pub size: u32,
@@ -49,7 +51,7 @@ pub struct Signer {
 }
 
 /// The `SignedData` struct represents the signed data of the signer.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SignedData {
     /// The digests of the signed data.
     pub digests: Vec<Digest>,
@@ -68,14 +70,14 @@ pub struct SignedData {
 }
 
 /// The `ProofOfRotation` struct represents the proof of rotation.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ProofOfRotation {
     /// The levels of the proof of rotation.
     pub levels: Vec<Level>,
 }
 
 /// The `Level` struct represents the level of the proof of rotation.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Level {
     /// The signed data levels of the proof of rotation.
     pub level: SignedDataLevels,
@@ -91,7 +93,7 @@ pub struct Level {
 }
 
 /// The `SignedDataLevels` struct represents the signed data levels of the proof of rotation.
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SignedDataLevels {
     /// The certificate of the signed data levels.
     pub certificate: Vec<u8>,

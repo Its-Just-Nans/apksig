@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>apksig</title>
+        <base data-trunk-public-url />
+        <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="apksig_demo" />
+        <style>
+            #dropHandler {
+                width: 100%;
+                min-height: 50vh;
+                background-color: #f0f0f0;
+                display: flex;
+                justify-content: center;
+                flex-direction: column;
+                font-size: 2em;
+            }
+            #dropHandler > .start {
+                text-align: center;
+            }
+            details {
+                margin-bottom: 5px;
+                padding-left: 20px;
+            }
+
+            details > details {
+                margin-left: 10px;
+                padding-left: 20px;
+            }
+            details > span {
+                margin-left: 20px;
+                background: aqua;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="dropHandler">
+            <div class="start">Drop apk here</div>
+        </div>
+    </body>
+
+    <script type="module">
+        const copyValue = (ev) => {
+            const el = ev.target;
+            navigator.clipboard.writeText(el.innerHTML);
+        };
+
+        addEventListener("TrunkApplicationStarted", (event) => {
+            console.log("application started - bindings:", window.wasmBindings, "WASM:", event.detail.wasm);
+
+            const decodeFile = async (file) => {
+                const data = await file.arrayBuffer();
+                let u8 = new Uint8Array(data);
+                window.wasmBindings.process_file(u8);
+                [...document.getElementsByTagName("span")].forEach((span) => {
+                    span.title = "Click to copy";
+                    span.addEventListener("click", copyValue);
+                });
+            };
+            const dropHandler = document.getElementById("dropHandler");
+            const start = document.getElementsByClassName("start")[0];
+
+            dropHandler.addEventListener(
+                "drop",
+                (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    start.innerHTML = "Loading...";
+                    // read file as new Uint8Array(23);
+                    if (event.dataTransfer.items) {
+                        [...event.dataTransfer.items].forEach((item, i) => {
+                            // If dropped items aren't files, reject them
+                            if (item.kind === "file") {
+                                const file = item.getAsFile();
+                                decodeFile(file);
+                            }
+                        });
+                    } else {
+                        [...event.dataTransfer.files].forEach((file, i) => {
+                            decodeFile(file);
+                        });
+                    }
+                },
+                false
+            );
+
+            dropHandler.addEventListener(
+                "dragover",
+                (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    start.innerHTML = "Dragging !";
+                },
+                false
+            );
+
+            dropHandler.addEventListener(
+                "dragenter",
+                (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    start.innerHTML = "Drop now !";
+                },
+                false
+            );
+
+            dropHandler.addEventListener(
+                "dragleave",
+                (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    start.innerHTML = "Drop here";
+                },
+                false
+            );
+        });
+    </script>
+</html>

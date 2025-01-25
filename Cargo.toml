@@ -9,3 +9,6 @@ readme = "./README.md"
 repository = "https://github.com/Its-Just-Nans/apksig"
 keywords = ["apk", "android", "signing", "signature", "apksig"]
 categories = ["api-bindings", "command-line-utilities"]
+
+[dependencies]
+serde = { version = "1.0.217", features = ["derive"] }

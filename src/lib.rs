@@ -28,6 +28,7 @@ mod scheme_v2;
 mod scheme_v3;
 mod utils;
 
+use serde::Serialize;
 use utils::{add_space, to_hexe, MagicNumberDecoder, MyReader};
 pub use utils::{MAGIC, MAGIC_LEN, VERITY_PADDING_BLOCK_ID};
 
@@ -38,7 +39,7 @@ pub use scheme_v3::{SignatureSchemeV3, SIGNATURE_SCHEME_V3_BLOCK_ID};
 const SIZE_UINT64: usize = 8;
 
 /// Raw data extracted from the APK Signing Block
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct RawData {
     /// Size of the data
     pub size: usize,
@@ -51,7 +52,7 @@ pub struct RawData {
 }
 
 /// Value of the APK Signing Block
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum ValueSigningBlock {
     /// Base Signing Block
     BaseSigningBlock(RawData),
@@ -64,7 +65,7 @@ pub enum ValueSigningBlock {
 }
 
 /// APK Signing Block
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize)]
 pub struct SigningBlock {
     /// Offset of the start of the block in the file
     pub offset_start: usize,
