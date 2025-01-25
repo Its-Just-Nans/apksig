@@ -68,10 +68,10 @@ pub enum ValueSigningBlock {
 #[derive(Debug, Default, Serialize)]
 pub struct SigningBlock {
     /// Offset of the start of the block in the file
-    pub offset_start: usize,
+    pub file_offset_start: usize,
 
     /// Offset of the end of the block in the file
-    pub offset_end: usize,
+    pub file_offset_end: usize,
 
     /// Size of block - at the start of the block
     pub start_size: usize,
@@ -124,8 +124,8 @@ impl SigningBlock {
                         sig_block.content = SigningBlock::extract_values(&mut MyReader::new(&vec));
                         let start_block_size = full_block + SIZE_UINT64;
                         reader.seek(SeekFrom::End(-(start_block_size as i64)))?;
-                        sig_block.offset_start = file_len - start_block_size;
-                        sig_block.offset_end = file_len - idx + MAGIC_LEN;
+                        sig_block.file_offset_start = file_len - start_block_size;
+                        sig_block.file_offset_end = file_len - idx + MAGIC_LEN;
                         sig_block.content_size = inner_block_size;
                         let mut buf = [0; SIZE_UINT64];
                         reader.read_exact(&mut buf)?;
@@ -218,8 +218,8 @@ pub fn real_main() -> Result<i32, Box<dyn std::error::Error>> {
     println!();
     println!(
         "APK Signing Block is between {} and {} with a size of {} bytes",
-        sig_block.offset_start,
-        sig_block.offset_end,
+        sig_block.file_offset_start,
+        sig_block.file_offset_end,
         sig_block.start_size + 8
     );
     Ok(0)

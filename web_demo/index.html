@@ -16,7 +16,7 @@
                 flex-direction: column;
                 font-size: 2em;
             }
-            #dropHandler > .start {
+            #dropHandler .startDiv {
                 text-align: center;
             }
             details {
@@ -49,7 +49,10 @@
             >
         </div>
         <div id="dropHandler">
-            <div class="start">Drop apk here</div>
+            <div class="startDiv">
+                <input type="file" id="file-input" />
+                <div class="start">Drop apk here</div>
+            </div>
         </div>
     </body>
 
@@ -73,6 +76,12 @@
             };
             const dropHandler = document.getElementById("dropHandler");
             const start = document.getElementsByClassName("start")[0];
+            const input = document.getElementById("file-input");
+
+            input.addEventListener("change", (event) => {
+                const file = event.target.files[0];
+                decodeFile(file);
+            });
 
             dropHandler.addEventListener(
                 "drop",
