@@ -179,8 +179,8 @@ mod test {
         assert_eq!(&sig.magic, MAGIC);
         let content_size = BLOCK.len() - 8 - 8 - MAGIC_LEN; // two u64 (8 bytes) and magic_len (64 bytes)
         assert_eq!(sig.content_size, content_size);
-        assert_eq!(sig.offset_start, 0);
-        assert_eq!(sig.offset_end, BLOCK.len());
+        assert_eq!(sig.file_offset_start, 0);
+        assert_eq!(sig.file_offset_end, BLOCK.len());
         assert_eq!(sig.start_size, sig.end_size);
         assert_eq!(sig.content.len(), 2);
         if let ValueSigningBlock::SignatureSchemeV2Block(block) = &sig.content[0] {
