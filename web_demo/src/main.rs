@@ -18,7 +18,23 @@ pub fn process_file(data: &[u8]) {
             display_signature(&sig);
         }
         Err(e) => {
-            web_sys::console::log_1(&format!("Error: {:?}", e).into());
+            let error = format!("Error: {}", e.to_string());
+            web_sys::console::log_1(&error.clone().into());
+            let document = window()
+                .and_then(|win| win.document())
+                .expect("Could not access document");
+            let drop_handler = document
+                .get_element_by_id("dropHandler")
+                .expect("Could not find #dropHandler");
+            drop_handler.set_inner_html("");
+            let div_helper = document
+                .create_element("div")
+                .expect("Could not create element");
+            div_helper.set_inner_html(&error);
+            div_helper.set_class_name("error");
+            drop_handler
+                .append_child(&div_helper)
+                .expect("Failed to append text");
         }
     }
 }
@@ -38,6 +54,7 @@ fn display_signature(sig: &SigningBlock) {
         .create_element("div")
         .expect("Could not create element");
     div_helper.set_inner_html("APK Signing Block. Click on value to copy them to clipboard");
+    div_helper.set_class_name("success");
     drop_handler
         .append_child(&div_helper)
         .expect("Failed to append text");

@@ -148,7 +148,7 @@ impl SigningBlock {
         Err(std::io::Error::new(
             std::io::ErrorKind::Other,
             format!(
-                "Magic not found\n MAGIC is '{:?}' (binary) and '{}' (string)",
+                "Magic not found\nMAGIC is '{:?}' (as binary) or '{}' (as string)",
                 MAGIC,
                 String::from_utf8_lossy(MAGIC)
             ),
