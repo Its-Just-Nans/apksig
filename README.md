@@ -1,5 +1,9 @@
 # apksig
 
+- <https://docs.rs/apksig> - documentation
+- <https://n4n5.dev/apksig/> - online demo
+- <https://githu.com/Its-Just-Nans/apksig> - repository
+
 [![asciicast](https://asciinema.org/a/699727.svg)](https://asciinema.org/a/699727)
 
 ## Usage
