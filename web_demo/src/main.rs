@@ -53,7 +53,7 @@ fn display_signature(sig: &SigningBlock) {
     let div_helper = document
         .create_element("div")
         .expect("Could not create element");
-    div_helper.set_inner_html("APK Signing Block. Click on value to copy them to clipboard");
+    div_helper.set_inner_html("APK Signing Block. Click on values to copy them to clipboard");
     div_helper.set_class_name("success");
     drop_handler
         .append_child(&div_helper)
