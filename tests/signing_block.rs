@@ -189,11 +189,18 @@ mod test {
             assert_eq!(block.signers.len(), 1);
             let signer = &block.signers[0];
             assert_eq!(signer.size, 1302);
-            assert_eq!(signer.signed_data.digests.len(), 1);
-            assert_eq!(signer.signed_data.certificates.len(), 1);
-            assert_eq!(signer.signed_data.additional_attributes.len(), 0);
-            assert_eq!(signer.signatures.len(), 1);
-            assert_eq!(signer.pub_key.len(), 294);
+            assert_eq!(signer.signed_data.digests.digests_data.len(), 1);
+            assert_eq!(signer.signed_data.certificates.certificates_data.len(), 1);
+            assert_eq!(
+                signer
+                    .signed_data
+                    .additional_attributes
+                    .additional_attributes_data
+                    .len(),
+                0
+            );
+            assert_eq!(signer.signatures.signatures_data.len(), 1);
+            assert_eq!(signer.pub_key.data.len(), 294);
         } else {
             panic!(
                 "Expected ValueSigningBlock::SignatureSchemeV2Block() but got {:?}",

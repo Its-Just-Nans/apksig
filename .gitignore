@@ -1,3 +1,4 @@
 /target
 
 *.apk
+!./tests/*.apk

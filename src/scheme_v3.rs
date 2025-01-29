@@ -4,8 +4,8 @@
 use serde::Serialize;
 
 use crate::{
-    common::{Certificate, Digest, Signatures, TinyRawData},
-    utils::{add_space, print_hexe, to_hexe, MagicNumberDecoder},
+    common::{AdditionalAttributes, Certificates, Digests, PubKey, Signatures},
+    utils::{add_space, print_hexe, MagicNumberDecoder},
     MyReader,
 };
 
@@ -44,10 +44,10 @@ pub struct Signer {
     pub max_sdk: u32,
 
     /// The signatures of the signer.
-    pub signatures: Vec<Signatures>,
+    pub signatures: Signatures,
 
     /// The public key of the signer.
-    pub pub_key: Vec<u8>,
+    pub pub_key: PubKey,
 }
 
 /// The `SignedData` struct represents the signed data of the signer.
@@ -56,17 +56,11 @@ pub struct SignedData {
     /// The size of the signed data.
     pub size: usize,
 
-    /// The size of the digests of the signed data.
-    pub size_digests: usize,
-
     /// The digests of the signed data.
-    pub digests: Vec<Digest>,
-
-    /// The size of the certificates of the signed data.
-    pub size_certificates: usize,
+    pub digests: Digests,
 
     /// The certificates of the signed data.
-    pub certificates: Vec<Certificate>,
+    pub certificates: Certificates,
 
     /// The min SDK of the signed data.
     pub min_sdk: u32,
@@ -74,11 +68,8 @@ pub struct SignedData {
     /// The maximum SDK of the signed data.
     pub max_sdk: u32,
 
-    /// The size of the additional attributes of the signed data.
-    pub size_additional_attributes: usize,
-
     /// The additional attributes of the signed data.
-    pub additional_attributes: Vec<TinyRawData>,
+    pub additional_attributes: AdditionalAttributes,
 }
 
 /// The `ProofOfRotation` struct represents the proof of rotation.
@@ -181,7 +172,7 @@ impl SignatureSchemeV3 {
             ..
         }) = self.signers.first()
         {
-            for attribute in attributes {
+            for attribute in attributes.additional_attributes_data.iter() {
                 if attribute.id == PROOF_OF_ROTATION_BLOCK_ID {
                     return Some(Self::parse_proof_of_rotation(&mut MyReader::new(
                         &attribute.data,
@@ -194,128 +185,27 @@ impl SignatureSchemeV3 {
 
     /// Parses the data of the signature scheme.
     fn parse_signed_data(data: &mut MyReader) -> SignedData {
-        let mut digests = Vec::new();
-        let mut certificates = Vec::new();
-        let mut additional_attributes = Vec::new();
         let size_signed_data = data.read_size();
         add_space!(8);
         println!("size_signed_data: {}", size_signed_data);
-        let mut data = data.as_slice(size_signed_data);
-        let size_digests = data.read_size();
-        add_space!(12);
-        println!("size_digests: {}", size_digests);
-        let max_pos_digests = data.get_pos() + size_digests;
-        while data.get_pos() < max_pos_digests {
-            let size_one_digest = data.read_size();
-            add_space!(16);
-            println!("size_one_digest: {}", size_one_digest);
-            let signature_algorithm_id = data.read_u32();
-            add_space!(20);
-            println!(
-                "signature_algorithm_id: {} {}",
-                signature_algorithm_id,
-                MagicNumberDecoder(signature_algorithm_id)
-            );
-            let digest_size = data.read_size();
-            add_space!(20);
-            println!("digest_size: {}", digest_size);
-            let digest = data.get_to(digest_size).to_vec();
-            add_space!(20);
-            println!("digest: {}", to_hexe(&digest));
-            digests.push(Digest {
-                size: size_one_digest,
-                signature_algorithm_id,
-                digest,
-            })
-        }
-        let size_certificates = data.read_size();
-        add_space!(12);
-        println!("size_certificates: {}", size_certificates);
-        let pos_max_cert = data.get_pos() + size_certificates;
-        while data.get_pos() < pos_max_cert {
-            let certificate_size = data.read_size();
-            add_space!(16);
-            println!("certificate_size: {}", certificate_size);
-            let certificate = data.get_to(certificate_size).to_vec();
-            add_space!(16);
-            print_hexe("certificate", &certificate);
-            certificates.push(Certificate { certificate });
-        }
+        let data = &mut data.as_slice(size_signed_data);
+        let digests = Digests::parse(data);
+        let certificates = Certificates::parse(data);
         let min_sdk = data.read_u32();
         add_space!(12);
         println!("min_sdk: {}", min_sdk);
         let max_sdk = data.read_u32();
         add_space!(12);
         println!("max_sdk: {}", max_sdk);
-
-        let size_additional_attributes = data.read_size();
-        add_space!(12);
-        println!("size_additional_attributes: {}", size_additional_attributes);
-        let max_pos_attributes = data.get_pos() + size_additional_attributes;
-        while data.get_pos() < max_pos_attributes {
-            let additional_attributes_size = data.read_size();
-            add_space!(16);
-            println!("additional_attributes_size: {}", additional_attributes_size);
-            let id = data.read_u32();
-            add_space!(16);
-            println!("id: {} {}", id, MagicNumberDecoder(id));
-            let size_attribute = additional_attributes_size - 4;
-            let attribute_value = data.get_to(size_attribute).to_vec();
-            add_space!(16);
-            print_hexe("attribute_value", &attribute_value);
-            additional_attributes.push(TinyRawData {
-                size: additional_attributes_size,
-                id,
-                data: attribute_value,
-            });
-        }
+        let additional_attributes = AdditionalAttributes::parse(data);
         SignedData {
-            size: data.len(),
-            size_digests,
+            size: size_signed_data,
             digests,
-            size_certificates,
             certificates,
             min_sdk,
             max_sdk,
-            size_additional_attributes,
             additional_attributes,
         }
-    }
-
-    /// Parses the signatures of the signer.
-    fn parse_signatures(data: &mut MyReader) -> Vec<Signatures> {
-        let mut signatures = Vec::new();
-        while data.get_pos() < data.len() {
-            let size_one_signature = data.read_size();
-            add_space!(12);
-            println!("size_one_signature: {}", size_one_signature);
-            let signature_algorithm_id = data.read_u32();
-            add_space!(16);
-            println!(
-                "signature_algorithm_id: {} {}",
-                signature_algorithm_id,
-                MagicNumberDecoder(signature_algorithm_id)
-            );
-            let signature_size = data.read_size();
-            add_space!(16);
-            println!("signature_size: {}", signature_size);
-            let signature = data.get_to(signature_size).to_vec();
-            add_space!(16);
-            print_hexe("signature", &signature);
-            signatures.push(Signatures {
-                size: size_one_signature,
-                signature_algorithm_id,
-                signature,
-            });
-        }
-        signatures
-    }
-
-    /// Parses the public key of the signer.
-    fn parse_pub_key(data: &mut MyReader) -> Vec<u8> {
-        add_space!(12);
-        println!("pub_key: {:}...", to_hexe(data.get_to(20)));
-        data.to_vec()
     }
 
     /// Parses the signers of the signature scheme.
@@ -336,19 +226,8 @@ impl SignatureSchemeV3 {
             let max_sdk = data.read_u32();
             add_space!(8);
             println!("max_sdk: {}", max_sdk);
-
-            let signatures_length = data.read_size();
-            add_space!(8);
-            println!("signatures_length: {}", signatures_length);
-            let signatures = if signatures_length != 0 {
-                Self::parse_signatures(&mut data.as_slice(signatures_length))
-            } else {
-                Vec::new()
-            };
-            let pub_key_length = data.read_size();
-            add_space!(8);
-            println!("pub_key_length: {}", pub_key_length);
-            let pub_key = Self::parse_pub_key(&mut data.as_slice(pub_key_length));
+            let signatures = Signatures::parse(data);
+            let pub_key = PubKey::parse(data);
             debug_assert_eq!(min_sdk, signed_data.min_sdk);
             debug_assert_eq!(max_sdk, signed_data.max_sdk);
             signers.push(Signer {
