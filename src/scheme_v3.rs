@@ -32,7 +32,7 @@ pub struct SignatureSchemeV3 {
 #[derive(Debug, Serialize)]
 pub struct Signer {
     /// The size of the signer.
-    pub size: u32,
+    pub size: usize,
 
     /// The signed data of the signer.
     pub signed_data: SignedData,
@@ -53,8 +53,17 @@ pub struct Signer {
 /// The `SignedData` struct represents the signed data of the signer.
 #[derive(Debug, Serialize)]
 pub struct SignedData {
+    /// The size of the signed data.
+    pub size: usize,
+
+    /// The size of the digests of the signed data.
+    pub size_digests: usize,
+
     /// The digests of the signed data.
     pub digests: Vec<Digest>,
+
+    /// The size of the certificates of the signed data.
+    pub size_certificates: usize,
 
     /// The certificates of the signed data.
     pub certificates: Vec<Certificate>,
@@ -64,6 +73,9 @@ pub struct SignedData {
 
     /// The maximum SDK of the signed data.
     pub max_sdk: u32,
+
+    /// The size of the additional attributes of the signed data.
+    pub size_additional_attributes: usize,
 
     /// The additional attributes of the signed data.
     pub additional_attributes: Vec<TinyRawData>,
@@ -185,10 +197,14 @@ impl SignatureSchemeV3 {
         let mut digests = Vec::new();
         let mut certificates = Vec::new();
         let mut additional_attributes = Vec::new();
-        let length_digests = data.read_size();
+        let size_signed_data = data.read_size();
+        add_space!(8);
+        println!("size_signed_data: {}", size_signed_data);
+        let mut data = data.as_slice(size_signed_data);
+        let size_digests = data.read_size();
         add_space!(12);
-        println!("length_digests: {}", length_digests);
-        let max_pos_digests = data.get_pos() + length_digests;
+        println!("size_digests: {}", size_digests);
+        let max_pos_digests = data.get_pos() + size_digests;
         while data.get_pos() < max_pos_digests {
             let size_one_digest = data.read_size();
             add_space!(16);
@@ -207,14 +223,15 @@ impl SignatureSchemeV3 {
             add_space!(20);
             println!("digest: {}", to_hexe(&digest));
             digests.push(Digest {
+                size: size_one_digest,
                 signature_algorithm_id,
                 digest,
             })
         }
-        let length_certificates = data.read_size();
+        let size_certificates = data.read_size();
         add_space!(12);
-        println!("length_certificates: {}", length_certificates);
-        let pos_max_cert = data.get_pos() + length_certificates;
+        println!("size_certificates: {}", size_certificates);
+        let pos_max_cert = data.get_pos() + size_certificates;
         while data.get_pos() < pos_max_cert {
             let certificate_size = data.read_size();
             add_space!(16);
@@ -231,13 +248,10 @@ impl SignatureSchemeV3 {
         add_space!(12);
         println!("max_sdk: {}", max_sdk);
 
-        let length_additional_attributes = data.read_size();
+        let size_additional_attributes = data.read_size();
         add_space!(12);
-        println!(
-            "length_additional_attributes: {}",
-            length_additional_attributes
-        );
-        let max_pos_attributes = data.get_pos() + length_additional_attributes;
+        println!("size_additional_attributes: {}", size_additional_attributes);
+        let max_pos_attributes = data.get_pos() + size_additional_attributes;
         while data.get_pos() < max_pos_attributes {
             let additional_attributes_size = data.read_size();
             add_space!(16);
@@ -256,10 +270,14 @@ impl SignatureSchemeV3 {
             });
         }
         SignedData {
+            size: data.len(),
+            size_digests,
             digests,
+            size_certificates,
             certificates,
             min_sdk,
             max_sdk,
+            size_additional_attributes,
             additional_attributes,
         }
     }
@@ -307,13 +325,10 @@ impl SignatureSchemeV3 {
         println!("size_signers: {}", size_signers);
         let mut signers = Vec::new();
         while data.get_pos() < data.len() {
-            let size_one_signer = data.read_size();
+            let size = data.read_size();
             add_space!(8);
-            println!("size_one_signer: {}", size_one_signer);
-            let size_signed_data = data.read_size();
-            add_space!(8);
-            println!("size_signed_data: {}", size_signed_data);
-            let signed_data = Self::parse_signed_data(&mut data.as_slice(size_signed_data));
+            println!("size_one_signer: {}", size);
+            let signed_data = Self::parse_signed_data(data);
 
             let min_sdk = data.read_u32();
             add_space!(8);
@@ -337,7 +352,7 @@ impl SignatureSchemeV3 {
             debug_assert_eq!(min_sdk, signed_data.min_sdk);
             debug_assert_eq!(max_sdk, signed_data.max_sdk);
             signers.push(Signer {
-                size: size_one_signer as u32,
+                size,
                 signed_data,
                 min_sdk,
                 max_sdk,

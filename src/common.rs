@@ -5,6 +5,9 @@ use serde::Serialize;
 /// The `Digest` struct represents the digest of the signed data.
 #[derive(Debug, Serialize)]
 pub struct Digest {
+    /// The size of the digest.
+    pub size: usize,
+
     /// The signature algorithm ID of the digest.
     pub signature_algorithm_id: u32,
 
