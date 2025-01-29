@@ -7,7 +7,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::window;
 
 #[wasm_bindgen]
-pub fn process_file(data: &[u8]) {
+pub fn process_file(data: &[u8]) -> String {
     let file_len = data.len();
     let reader = std::io::Cursor::new(&data[..]);
     let res_sig = SigningBlock::extract(reader, file_len, 0);
@@ -16,6 +16,7 @@ pub fn process_file(data: &[u8]) {
         Ok(sig) => {
             web_sys::console::log_1(&"Success".into());
             display_signature(&sig);
+            return serde_json::to_string(&sig).expect("Error serializing data");
         }
         Err(e) => {
             let error = format!("Error: {}", e.to_string());
@@ -37,6 +38,7 @@ pub fn process_file(data: &[u8]) {
                 .expect("Failed to append text");
         }
     }
+    return "{\"error\": \"Error processing file\"}".to_string();
 }
 
 fn display_signature(sig: &SigningBlock) {
@@ -86,11 +88,25 @@ fn generate_recursive_html(json: &Value) -> String {
             if all_numbers {
                 html.push_str(&format!("<span>len: {}</span>", arr.len()));
                 html.push_str(&format!(
-                    "<span>[{}]</span>",
+                    "<details><summary>[u8]</summary><span>[{}]</span></details>",
                     arr.iter()
                         .map(format_json_value)
                         .collect::<Vec<String>>()
                         .join(", ")
+                ));
+                html.push_str(&format!(
+                    "<details><summary>binary</summary><span>{}</span></details>",
+                    arr.iter()
+                        .map(|x| format!("{:08b}", x.as_u64().unwrap()))
+                        .collect::<Vec<String>>()
+                        .join("")
+                ));
+                html.push_str(&format!(
+                    "<details><summary>hex</summary><span>{}</span></details>",
+                    arr.iter()
+                        .map(|x| format!("{:02x}", x.as_u64().unwrap()))
+                        .collect::<Vec<String>>()
+                        .join("")
                 ));
             } else {
                 for (i, value) in arr.iter().enumerate() {

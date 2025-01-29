@@ -7,6 +7,9 @@
         <base data-trunk-public-url />
         <link data-trunk rel="rust" href="Cargo.toml" data-wasm-opt="z" data-bin="apksig_demo" />
         <style>
+            body {
+                margin: 0;
+            }
             #dropHandler {
                 width: 100%;
                 min-height: 50vh;
@@ -34,6 +37,7 @@
                 margin-left: 20px;
                 background: aqua;
                 cursor: copy;
+                line-break: anywhere;
             }
             .links {
                 text-align: center;
@@ -75,11 +79,33 @@
             const decodeFile = async (file) => {
                 const data = await file.arrayBuffer();
                 let u8 = new Uint8Array(data);
-                window.wasmBindings.process_file(u8);
+                let json = window.wasmBindings.process_file(u8);
                 [...document.getElementsByTagName("span")].forEach((span) => {
                     span.title = "Click to copy";
                     span.addEventListener("click", copyValue);
                 });
+                let button = document.createElement("button");
+                button.innerHTML = "Open all";
+                button.addEventListener("click", () => {
+                    [...document.getElementsByTagName("details")].forEach((details) => {
+                        details.open = true;
+                    });
+                });
+                document.getElementsByClassName("links")[0].nextSibling.after(button);
+
+                let button2 = document.createElement("button");
+                button2.innerHTML = "Download JSON";
+                let jsonned = JSON.parse(json);
+                button2.addEventListener("click", () => {
+                    const blob = new Blob([JSON.stringify(jsonned, null, 2)], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "apksig.json";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                });
+                button.after(button2);
             };
             const dropHandler = document.getElementById("dropHandler");
             const start = document.getElementsByClassName("start")[0];
