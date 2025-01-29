@@ -87,27 +87,29 @@ fn generate_recursive_html(json: &Value) -> String {
             let all_numbers = arr.iter().all(|x| x.is_number());
             if all_numbers {
                 html.push_str(&format!("<span>len: {}</span>", arr.len()));
-                html.push_str(&format!(
-                    "<details><summary>[u8]</summary><span>[{}]</span></details>",
-                    arr.iter()
-                        .map(format_json_value)
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                ));
-                html.push_str(&format!(
-                    "<details><summary>binary</summary><span>{}</span></details>",
-                    arr.iter()
-                        .map(|x| format!("{:08b}", x.as_u64().unwrap()))
-                        .collect::<Vec<String>>()
-                        .join("")
-                ));
-                html.push_str(&format!(
-                    "<details><summary>hex</summary><span>{}</span></details>",
-                    arr.iter()
-                        .map(|x| format!("{:02x}", x.as_u64().unwrap()))
-                        .collect::<Vec<String>>()
-                        .join("")
-                ));
+                if !arr.is_empty() {
+                    html.push_str(&format!(
+                        "<details><summary>[u8]</summary><span>[{}]</span></details>",
+                        arr.iter()
+                            .map(format_json_value)
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    ));
+                    html.push_str(&format!(
+                        "<details><summary>binary</summary><span>{}</span></details>",
+                        arr.iter()
+                            .map(|x| format!("{:08b}", x.as_u64().unwrap()))
+                            .collect::<Vec<String>>()
+                            .join("")
+                    ));
+                    html.push_str(&format!(
+                        "<details><summary>hex</summary><span>{}</span></details>",
+                        arr.iter()
+                            .map(|x| format!("{:02x}", x.as_u64().unwrap()))
+                            .collect::<Vec<String>>()
+                            .join("")
+                    ));
+                }
             } else {
                 for (i, value) in arr.iter().enumerate() {
                     html.push_str(&format!("<details><summary>Item {}</summary>", i + 1));
