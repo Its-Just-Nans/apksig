@@ -63,6 +63,9 @@
             <div class="startDiv">
                 <input type="file" id="file-input" />
                 <div class="start">Drop apk here</div>
+                <div>
+                    <button id="demo">or use a fake one for demo</button>
+                </div>
             </div>
         </div>
     </body>
@@ -76,10 +79,7 @@
         addEventListener("TrunkApplicationStarted", (event) => {
             console.log("application started - bindings:", window.wasmBindings, "WASM:", event.detail.wasm);
 
-            const decodeFile = async (file) => {
-                const data = await file.arrayBuffer();
-                let u8 = new Uint8Array(data);
-                let json = window.wasmBindings.process_file(u8);
+            const handleResult = (json) => {
                 [...document.getElementsByTagName("span")].forEach((span) => {
                     span.title = "Click to copy";
                     span.addEventListener("click", copyValue);
@@ -107,6 +107,13 @@
                 });
                 button.after(button2);
             };
+
+            const decodeFile = async (file) => {
+                const data = await file.arrayBuffer();
+                let u8 = new Uint8Array(data);
+                let json = window.wasmBindings.process_file(u8);
+                handleResult(json);
+            };
             const dropHandler = document.getElementById("dropHandler");
             const start = document.getElementsByClassName("start")[0];
             const input = document.getElementById("file-input");
@@ -114,6 +121,11 @@
             input.addEventListener("change", (event) => {
                 const file = event.target.files[0];
                 decodeFile(file);
+            });
+
+            document.getElementById("demo").addEventListener("click", async () => {
+                let json = window.wasmBindings.process_demo();
+                handleResult(json);
             });
 
             dropHandler.addEventListener(

@@ -6,6 +6,13 @@ use serde_json::Value;
 use wasm_bindgen::prelude::*;
 use web_sys::window;
 
+include!("../../tests/raw_signing_block_v2.rs");
+
+#[wasm_bindgen]
+pub fn process_demo() -> String {
+    return process_file(&BLOCK);
+}
+
 #[wasm_bindgen]
 pub fn process_file(data: &[u8]) -> String {
     let file_len = data.len();
