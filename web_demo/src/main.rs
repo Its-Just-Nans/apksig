@@ -116,6 +116,16 @@ fn generate_recursive_html(json: &Value) -> String {
                             .collect::<Vec<String>>()
                             .join("")
                     ));
+                    if let Ok(res) =
+                        String::from_utf8(arr.iter().map(|x| x.as_u64().unwrap() as u8).collect())
+                    {
+                        if !res.trim().trim_matches(char::from(0)).is_empty() {
+                            html.push_str(&format!(
+                                "<details><summary>string</summary><span>{}</span></details>",
+                                res
+                            ));
+                        }
+                    }
                 }
             } else {
                 for (i, value) in arr.iter().enumerate() {
