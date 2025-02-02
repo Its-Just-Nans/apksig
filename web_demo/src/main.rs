@@ -15,9 +15,7 @@ pub fn process_demo() -> String {
 
 #[wasm_bindgen]
 pub fn process_file(data: &[u8]) -> String {
-    let file_len = data.len();
-    let reader = std::io::Cursor::new(&data[..]);
-    let res_sig = SigningBlock::extract(reader, file_len, 0);
+    let res_sig = SigningBlock::from_u8(data);
     web_sys::console::log_1(&"Finished".into());
     match res_sig {
         Ok(sig) => {

@@ -11,4 +11,11 @@ keywords = ["apk", "android", "signing", "signature", "apksig"]
 categories = ["api-bindings", "command-line-utilities"]
 
 [dependencies]
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.217", features = ["derive"], optional = true }
+
+[features]
+default = ["directprint", "serde"]
+
+serde = ["dep:serde"]
+
+directprint = []

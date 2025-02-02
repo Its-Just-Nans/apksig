@@ -1,14 +1,21 @@
 //! # Common types for scheme
 
-use serde::Serialize;
+use std::mem;
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "directprint")]
+use crate::utils::MagicNumberDecoder;
 
 use crate::{
-    add_space, to_hexe,
-    utils::{print_hexe, MagicNumberDecoder, MyReader},
+    add_space,
+    utils::{print_hexe, print_string, MyReader},
 };
 
 /// The `Digest` struct represents the digest of the signed data.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Digest {
     /// The size of the digest.
     pub size: usize,
@@ -20,8 +27,71 @@ pub struct Digest {
     pub digest: Vec<u8>,
 }
 
+impl Digest {
+    /// Creates a new `Digest` with the given signature algorithm ID and digest.
+    pub fn new(signature_algorithm_id: u32, digest: Vec<u8>) -> Self {
+        // size is len(signature_algorithm_id) + len(len(digest)) + len(digest)
+        let size = mem::size_of::<u32>() + mem::size_of::<u32>() + digest.len();
+        Self {
+            size,
+            signature_algorithm_id,
+            digest,
+        }
+    }
+    /// Parses the digest of the signed data.
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size = data.read_size()?;
+        add_space!(16);
+        #[cfg(feature = "directprint")]
+        print_string!("digest_size: {}", size);
+        let signature_algorithm_id = data.read_u32()?;
+        add_space!(20);
+        #[cfg(feature = "directprint")]
+        print_string!(
+            "signature_algorithm_id: {} {}",
+            signature_algorithm_id,
+            MagicNumberDecoder(signature_algorithm_id)
+        );
+        let digest_size = data.read_size()?;
+        add_space!(20);
+        #[cfg(feature = "directprint")]
+        print_string!("digest_size: {}", digest_size);
+        let digest = data.get_to(digest_size)?.to_vec();
+        add_space!(20);
+        #[cfg(feature = "directprint")]
+        print_hexe("digest", &digest);
+        Ok(Self {
+            size,
+            signature_algorithm_id,
+            digest,
+        })
+    }
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = [
+            self.signature_algorithm_id.to_le_bytes()[..].to_vec(),
+            (self.digest.len() as u32).to_le_bytes()[..].to_vec(),
+            self.digest.to_vec(),
+        ]
+        .concat();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}
+
 /// The `Digests` struct represents the digests of the signed data.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Digests {
     /// The size of the digests.
     pub size: usize,
@@ -31,45 +101,58 @@ pub struct Digests {
 }
 
 impl Digests {
+    /// Creates a new `Digests` with the given digests.
+    pub fn new(digests_data: Vec<Digest>) -> Self {
+        let size = digests_data
+            .iter()
+            .fold(0, |acc, d| acc + d.size + mem::size_of::<u32>());
+        print_string!("size_digests: {} {}", size, digests_data[0].size);
+        Self { size, digests_data }
+    }
+
     /// Parses the digest of the signed data.
-    pub fn parse(data: &mut MyReader) -> Self {
-        let size_digests = data.read_size();
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size_digests = data.read_size()?;
         let mut digests = Self {
             size: size_digests,
             digests_data: Vec::new(),
         };
         add_space!(12);
-        println!("size_digests: {}", size_digests);
+        #[cfg(feature = "directprint")]
+        print_string!("size_digests: {}", size_digests);
+        let data = &mut data.as_slice(size_digests)?;
         let max_pos_digests = data.get_pos() + size_digests;
         while data.get_pos() < max_pos_digests {
-            let size_one_digest = data.read_size();
-            add_space!(16);
-            println!("size_one_digest: {}", size_one_digest);
-            let signature_algorithm_id = data.read_u32();
-            add_space!(20);
-            println!(
-                "signature_algorithm_id: {} {}",
-                signature_algorithm_id,
-                MagicNumberDecoder(signature_algorithm_id)
-            );
-            let digest_size = data.read_size();
-            add_space!(20);
-            println!("digest_size: {}", digest_size);
-            let digest = data.get_to(digest_size).to_vec();
-            add_space!(20);
-            println!("digest: {}", to_hexe(&digest));
-            digests.digests_data.push(Digest {
-                size: size_one_digest,
-                signature_algorithm_id,
-                digest,
-            })
+            digests.digests_data.push(Digest::parse(data)?);
         }
-        digests
+        Ok(digests)
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = self
+            .digests_data
+            .iter()
+            .flat_map(|d| d.to_u8())
+            .collect::<Vec<u8>>();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
     }
 }
 
 /// The `Certificates` struct represents the certificates of the signed data.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Certificates {
     /// The size of the certificates.
     pub size: usize,
@@ -79,40 +162,108 @@ pub struct Certificates {
 }
 
 impl Certificates {
+    /// Creates a new `Certificates` with the given certificates.
+    pub fn new(certificates_data: Vec<Certificate>) -> Self {
+        let size = certificates_data
+            .iter()
+            .fold(0, |acc, c| acc + c.size + mem::size_of::<u32>());
+        Self {
+            size,
+            certificates_data,
+        }
+    }
+
     /// Parses the certificates of the signed data.
-    pub fn parse(data: &mut MyReader) -> Self {
-        let size_certificates = data.read_size();
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size_certificates = data.read_size()?;
         let mut certificates = Certificates {
             size: size_certificates,
             certificates_data: Vec::new(),
         };
         add_space!(12);
-        println!("size_certificates: {}", size_certificates);
+        print_string!("size_certificates: {}", size_certificates);
         let pos_max_cert = data.get_pos() + size_certificates;
         while data.get_pos() < pos_max_cert {
-            let certificate_size = data.read_size();
-            add_space!(16);
-            println!("certificate_size: {}", certificate_size);
-            let certificate = data.get_to(certificate_size).to_vec();
-            add_space!(16);
-            print_hexe("certificate", &certificate);
             certificates
                 .certificates_data
-                .push(Certificate { certificate });
+                .push(Certificate::parse(data)?);
         }
-        certificates
+        Ok(certificates)
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = self
+            .certificates_data
+            .iter()
+            .flat_map(|c| c.to_u8())
+            .collect::<Vec<u8>>();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
     }
 }
 
 /// The `Certificate` struct represents the certificate of the signed data.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Certificate {
+    /// The certificate of the signed data.
+    pub size: usize,
     /// The certificate of the signed data.
     pub certificate: Vec<u8>,
 }
 
+impl Certificate {
+    /// Creates a new `Certificate` with the given certificate.
+    pub fn new(certificate: Vec<u8>) -> Self {
+        Self {
+            size: certificate.len(),
+            certificate,
+        }
+    }
+
+    /// Parses the certificate of the signed data.
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size = data.read_size()?;
+        add_space!(16);
+        print_string!("certificate_size: {}", size);
+        let certificate = data.get_to(size)?.to_vec();
+        add_space!(16);
+        print_hexe("certificate", &certificate);
+        Ok(Self { size, certificate })
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = self.certificate.to_vec();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}
+
 /// The `Signatures` struct represents the signatures of the signer.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signatures {
     /// The size of the signatures.
     pub size: usize,
@@ -122,48 +273,61 @@ pub struct Signatures {
 }
 
 impl Signatures {
+    /// Creates a new `Signatures` with the given signatures.
+    pub fn new(signatures_data: Vec<Signature>) -> Self {
+        let size = signatures_data
+            .iter()
+            .fold(0, |acc, s| acc + s.size + mem::size_of::<u32>());
+        Self {
+            size,
+            signatures_data,
+        }
+    }
+
     /// Parses the signatures of the signer.
-    pub fn parse(data: &mut MyReader) -> Self {
-        let size = data.read_size();
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size = data.read_size()?;
         add_space!(8);
-        println!("signatures_size: {}", size);
+        print_string!("signatures_size: {}", size);
         let mut signatures = Self {
             size,
             signatures_data: Vec::new(),
         };
         if size == 0 {
-            return signatures;
+            return Ok(signatures);
         }
-        let mut data = data.as_slice(size);
-        while data.get_pos() < data.len() {
-            let size_one_signature = data.read_size();
-            add_space!(12);
-            println!("size_one_signature: {}", size_one_signature);
-            let signature_algorithm_id = data.read_u32();
-            add_space!(16);
-            println!(
-                "signature_algorithm_id: {} {}",
-                signature_algorithm_id,
-                MagicNumberDecoder(signature_algorithm_id)
-            );
-            let signature_size = data.read_size();
-            add_space!(16);
-            println!("signature_size: {}", signature_size);
-            let signature = data.get_to(signature_size).to_vec();
-            add_space!(16);
-            print_hexe("signature", &signature);
-            signatures.signatures_data.push(Signature {
-                size: size_one_signature,
-                signature_algorithm_id,
-                signature,
-            });
+        let max_signatures = data.get_pos() + size;
+        while data.get_pos() < max_signatures {
+            signatures.signatures_data.push(Signature::parse(data)?);
         }
-        signatures
+        Ok(signatures)
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = self
+            .signatures_data
+            .iter()
+            .flat_map(|s| s.to_u8())
+            .collect::<Vec<u8>>();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
     }
 }
 
 /// The `Signature` struct represents the signature of the signer.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signature {
     /// The size of the signature.
     pub size: usize,
@@ -173,52 +337,132 @@ pub struct Signature {
     pub signature: Vec<u8>,
 }
 
+impl Signature {
+    /// Creates a new `Signature` with the given signature algorithm ID and signature.
+    pub fn new(signature_algorithm_id: u32, signature: Vec<u8>) -> Self {
+        // size is len(signature_algorithm_id) + len(len(signature)) + len(signature)
+        let size = mem::size_of::<u32>() + mem::size_of::<u32>() + signature.len();
+        Self {
+            size,
+            signature_algorithm_id,
+            signature,
+        }
+    }
+
+    /// Parses the signature of the signer.
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size = data.read_size()?;
+        add_space!(12);
+        print_string!("signature_size: {}", size);
+        let signature_algorithm_id = data.read_u32()?;
+        add_space!(12);
+        print_string!(
+            "signature_algorithm_id: {} {}",
+            signature_algorithm_id,
+            MagicNumberDecoder(signature_algorithm_id)
+        );
+        let signature_size = data.read_size()?;
+        add_space!(12);
+        print_string!("signature_size: {}", signature_size);
+        let signature = data.get_to(signature_size)?.to_vec();
+        add_space!(12);
+        print_hexe("signature", &signature);
+        Ok(Self {
+            size,
+            signature_algorithm_id,
+            signature,
+        })
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = [
+            self.signature_algorithm_id.to_le_bytes()[..].to_vec(),
+            (self.signature.len() as u32).to_le_bytes()[..].to_vec(),
+            self.signature.to_vec(),
+        ]
+        .concat();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}
+
 /// The `AdditionalAttributes` struct represents the additional attributes of the signed data.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AdditionalAttributes {
     /// The size of the additional attributes.
     pub size: usize,
     /// The additional attributes of the signed data.
-    pub additional_attributes_data: Vec<TinyRawData>,
+    pub additional_attributes_data: Vec<AdditionalAttribute>,
 }
 
 impl AdditionalAttributes {
+    /// Creates a new `AdditionalAttributes` with the given additional attributes.
+    pub fn new(additional_attributes_data: Vec<AdditionalAttribute>) -> Self {
+        let size = additional_attributes_data
+            .iter()
+            .fold(0, |acc, a| acc + a.size + mem::size_of::<u32>());
+        Self {
+            size,
+            additional_attributes_data,
+        }
+    }
+
     /// Parses the additional attributes of the signed data.
-    pub fn parse(data: &mut MyReader) -> Self {
-        let size_additional_attributes = data.read_size();
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size_additional_attributes = data.read_size()?;
         let mut additional_attributes = Self {
             size: size_additional_attributes,
             additional_attributes_data: Vec::new(),
         };
         add_space!(12);
-        println!("size_additional_attributes: {}", size_additional_attributes);
+        print_string!("size_additional_attributes: {}", size_additional_attributes);
         let max_pos_attributes = data.get_pos() + size_additional_attributes;
         while data.get_pos() < max_pos_attributes {
-            let additional_attributes_size = data.read_size();
-            add_space!(16);
-            println!("additional_attributes_size: {}", additional_attributes_size);
-            let id = data.read_u32();
-            add_space!(16);
-            println!("id: {}", id);
-            let size_attribute = additional_attributes_size - 4;
-            let attribute_value = data.get_to(size_attribute).to_vec();
-            add_space!(16);
-            print_hexe("attribute_value", &attribute_value);
             additional_attributes
                 .additional_attributes_data
-                .push(TinyRawData {
-                    size: additional_attributes_size,
-                    id,
-                    data: attribute_value,
-                });
+                .push(AdditionalAttribute::parse(data)?);
         }
-        additional_attributes
+        Ok(additional_attributes)
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = self
+            .additional_attributes_data
+            .iter()
+            .flat_map(|a| a.to_u8())
+            .collect::<Vec<u8>>();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
     }
 }
 
 /// The `TinyRawData` struct represents the tiny raw data of the signed data.
-#[derive(Debug, Serialize)]
-pub struct TinyRawData {
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct AdditionalAttribute {
     /// The size of the tiny raw data.
     pub size: usize,
     /// The ID of the tiny raw data.
@@ -227,8 +471,45 @@ pub struct TinyRawData {
     pub data: Vec<u8>,
 }
 
+impl AdditionalAttribute {
+    /// Parses the tiny raw data of the signed data.
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size = data.read_size()?;
+        add_space!(16);
+        print_string!("tiny_raw_data_size: {}", size);
+        let id = data.read_u32()?;
+        add_space!(20);
+        print_string!("id: {} {}", id, MagicNumberDecoder(id));
+        let data_size = match size.checked_sub(4) {
+            Some(size) => size,
+            None => return Err("Invalid size".to_string()),
+        };
+        let data = data.get_to(data_size)?.to_vec();
+        add_space!(20);
+        print_hexe("data", &data);
+        Ok(Self { size, id, data })
+    }
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = [self.id.to_le_bytes()[..].to_vec(), self.data.to_vec()].concat();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}
+
 /// The `PublicKey` struct represents the public key of the signer.
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PubKey {
     /// The size of the public key.
     pub size: usize,
@@ -237,17 +518,39 @@ pub struct PubKey {
 }
 
 impl PubKey {
-    /// Parses the public key of the signer.
-    pub fn parse(data: &mut MyReader) -> Self {
-        let size = data.read_size();
-        add_space!(8);
-        println!("pub_key_length: {}", size);
-        let data = &mut data.as_slice(size);
-        add_space!(12);
-        println!("pub_key: {:}...", to_hexe(data.get_to(20)));
+    /// Creates a new `PublicKey` with the given data.
+    pub fn new(data: Vec<u8>) -> Self {
         Self {
-            size,
-            data: data.to_vec(),
+            size: data.len(),
+            data,
         }
+    }
+
+    /// Parses the public key of the signer.
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size = data.read_size()?;
+        add_space!(8);
+        print_string!("pub_key_length: {}", size);
+        add_space!(12);
+        let data = data.get_to(size)?.to_vec();
+        print_hexe("pub_key", &data);
+        Ok(Self { size, data })
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = self.data.to_vec();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
     }
 }

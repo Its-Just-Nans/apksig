@@ -1,0 +1,223 @@
+//! From
+//! https://source.android.com/docs/security/features/apksigning/v2
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+use crate::add_space;
+use crate::common::AdditionalAttributes;
+use crate::common::Certificates;
+use crate::common::Digests;
+use crate::common::PubKey;
+use crate::common::Signatures;
+use crate::MyReader;
+
+/// Signature Scheme V2
+pub const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;
+
+/// The `SignatureSchemeV2` struct represents the V2 signature scheme.
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct SignatureSchemeV2 {
+    /// The size of the signature scheme.
+    /// u64
+    pub size: usize,
+
+    /// The ID of the signature scheme.
+    pub id: u32,
+
+    /// The signers of the signature scheme.
+    pub signers: Signers,
+}
+
+/// The `Signers` struct represents the signers of the signature scheme.
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Signers {
+    /// The size of the signers
+    pub size: usize,
+
+    /// The signers of the signature scheme.
+    pub signers_data: Vec<Signer>,
+}
+
+impl Signers {
+    /// Parse the signers
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size_signers = data.read_size()?;
+        let mut signers = Self {
+            size: size_signers,
+            signers_data: Vec::new(),
+        };
+        add_space!(4);
+        println!("size_signers: {}", size_signers);
+        let data = &mut data.as_slice(size_signers)?;
+        while data.get_pos() < data.len() {
+            let signer = Signer::parse(data)?;
+            signers.signers_data.push(signer);
+        }
+        Ok(signers)
+    }
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = self
+            .signers_data
+            .iter()
+            .flat_map(|s| s.to_u8())
+            .collect::<Vec<u8>>();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}
+
+/// The `Signer` struct represents the signer of the signature scheme.
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct Signer {
+    /// The size of the signer.
+    pub size: usize,
+
+    /// The signed data of the signer.
+    pub signed_data: SignedData,
+
+    /// The signatures of the signer.
+    pub signatures: Signatures,
+
+    /// The public key of the signer.
+    pub pub_key: PubKey,
+}
+
+impl Signer {
+    /// Parse the signer
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size_one_signer = data.read_size()?;
+        add_space!(8);
+        println!("size_one_signer: {}", size_one_signer);
+        let signed_data = SignedData::parse(data)?;
+        let signatures = Signatures::parse(data)?;
+        let pub_key = PubKey::parse(data)?;
+        Ok(Self {
+            size: size_one_signer,
+            signed_data,
+            signatures,
+            pub_key,
+        })
+    }
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = [
+            self.signed_data.to_u8(),
+            self.signatures.to_u8(),
+            self.pub_key.to_u8(),
+        ]
+        .concat();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}
+
+/// The `SignedData` struct represents the signed data of the signer.
+#[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct SignedData {
+    /// The size of the signed data.
+    pub size: usize,
+
+    /// The digests of the signed data.
+    pub digests: Digests,
+
+    /// The certificates of the signed data.
+    pub certificates: Certificates,
+
+    /// The additional attributes of the signed data.
+    pub additional_attributes: AdditionalAttributes,
+}
+
+impl SignedData {
+    /// Parse the signed data
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub fn parse(data: &mut MyReader) -> Result<Self, String> {
+        let size_signed_data = data.read_size()?;
+        add_space!(8);
+        println!("size_signed_data: {}", size_signed_data);
+        let data = &mut data.as_slice(size_signed_data)?;
+        let digests = Digests::parse(data)?;
+        let certificates = Certificates::parse(data)?;
+        let additional_attributes = AdditionalAttributes::parse(data)?;
+        Ok(Self {
+            size: size_signed_data,
+            digests,
+            certificates,
+            additional_attributes,
+        })
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = [
+            self.digests.to_u8(),
+            self.certificates.to_u8(),
+            self.additional_attributes.to_u8(),
+        ]
+        .concat();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u32).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}
+
+impl SignatureSchemeV2 {
+    /// Creates a new `SignatureSchemeV2` with the given size, ID, and data.
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub fn new(size: usize, id: u32, data: &mut MyReader) -> Result<Self, String> {
+        Ok(Self {
+            size,
+            id,
+            signers: Signers::parse(data)?,
+        })
+    }
+
+    /// Serialize to u8
+    pub fn to_u8(&self) -> Vec<u8> {
+        let content = [self.id.to_le_bytes()[..].to_vec(), self.signers.to_u8()].concat();
+        let padding = match self.size.checked_sub(content.len()) {
+            Some(calculated_size) => vec![0; calculated_size],
+            None => vec![],
+        };
+        [
+            (self.size as u64).to_le_bytes()[..].to_vec(),
+            content,
+            padding,
+        ]
+        .concat()
+    }
+}

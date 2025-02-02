@@ -9,15 +9,13 @@ mod test {
     use std::{fs::File, path::Path};
 
     #[test]
-    fn test_image_pipe() {
+    fn test_app_image_pipe() {
         let file = file!();
         let dir = Path::new(file).parent().unwrap();
         let apk = dir.join("de.kaffeemitkoffein.imagepipe_51.apk");
         let mut reader = File::open(apk).unwrap();
-        let mut buffer = Vec::new();
-        reader.read_to_end(&mut buffer).unwrap();
         let file_len = reader.metadata().unwrap().len() as usize;
-        let sig = SigningBlock::extract(&mut reader, file_len, 0);
+        let sig = SigningBlock::from_reader(&mut reader, file_len, 0);
         let sig = sig.unwrap();
         assert_eq!(&sig.magic, MAGIC);
         let start = 552960;
@@ -26,13 +24,13 @@ mod test {
         assert_eq!(sig.content_size, size);
         assert_eq!(sig.file_offset_start, start);
         assert_eq!(sig.file_offset_end, end);
-        assert_eq!(sig.start_size, sig.end_size);
+        assert_eq!(sig.size_of_block_start, sig.size_of_block_end);
         assert_eq!(sig.content.len(), 3);
         if let ValueSigningBlock::SignatureSchemeV2Block(block) = &sig.content[0] {
             assert_eq!(block.size, 1849);
             assert_eq!(block.id, SIGNATURE_SCHEME_V2_BLOCK_ID);
-            assert_eq!(block.signers.len(), 1);
-            let signer = &block.signers[0];
+            assert_eq!(block.signers.signers_data.len(), 1);
+            let signer = &block.signers.signers_data[0];
             assert_eq!(signer.size, 1837);
             assert_eq!(signer.signed_data.digests.digests_data.len(), 2);
             let digest = &signer.signed_data.digests.digests_data[0];
@@ -58,6 +56,7 @@ mod test {
                 .additional_attributes
                 .additional_attributes_data[0];
             assert_eq!(attr.size, 8);
+            assert_eq!(attr.id, 3203395597);
             assert_eq!(attr.data.len(), 4);
             assert_eq!(attr.data, vec![3, 0, 0, 0]);
 
@@ -80,8 +79,8 @@ mod test {
         if let ValueSigningBlock::SignatureSchemeV3Block(block) = &sig.content[1] {
             assert_eq!(block.size, 1849);
             assert_eq!(block.id, SIGNATURE_SCHEME_V3_BLOCK_ID);
-            assert_eq!(block.signers.len(), 1);
-            let signer = &block.signers[0];
+            assert_eq!(block.signers.signers_data.len(), 1);
+            let signer = &block.signers.signers_data[0];
             assert_eq!(signer.size, 1837);
             assert_eq!(signer.signed_data.digests.digests_data.len(), 2);
             let digest = &signer.signed_data.digests.digests_data[0];
@@ -90,7 +89,6 @@ mod test {
             let digest = &signer.signed_data.digests.digests_data[1];
             assert_eq!(digest.size, 48);
             assert_eq!(digest.digest.len(), 40);
-
             assert_eq!(signer.signed_data.certificates.certificates_data.len(), 1);
             let cert = &signer.signed_data.certificates.certificates_data[0];
             assert_eq!(cert.certificate.len(), 867);
@@ -128,5 +126,31 @@ mod test {
                 sig.content[1]
             );
         }
+    }
+
+    #[test]
+    fn test_scheme_v3_serialize() {
+        let file = file!();
+        let dir = Path::new(file).parent().unwrap();
+        let apk = dir.join("de.kaffeemitkoffein.imagepipe_51.apk");
+        let mut reader = File::open(apk).unwrap();
+        let mut buffer_apk = Vec::new();
+        reader.read_to_end(&mut buffer_apk).unwrap();
+
+        let file_len = reader.metadata().unwrap().len() as usize;
+        let sig = SigningBlock::from_reader(&mut reader, file_len, 0);
+        let sig = sig.unwrap();
+
+        let binary_block = buffer_apk[sig.file_offset_start..sig.file_offset_end].to_vec();
+        assert_eq!(sig.to_u8(), binary_block);
+
+        let sig_binary = SigningBlock::from_u8(&binary_block);
+        let sig_binary = sig_binary.unwrap();
+        assert_eq!(sig_binary.content_size, sig_binary.content_to_u8().len());
+
+        assert_eq!(sig_binary.content_to_u8(), sig.content_to_u8());
+        assert_eq!(sig_binary.content_to_u8().len(), sig.content_to_u8().len());
+
+        assert_eq!(sig.to_u8(), sig_binary.to_u8());
     }
 }

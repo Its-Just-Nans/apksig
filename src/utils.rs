@@ -4,33 +4,41 @@
 macro_rules! add_space {
     ($n:expr) => {
         for _ in 0..$n {
+            #[cfg(feature = "directprint")]
             print!(" ");
         }
     };
 }
 pub(crate) use add_space;
 
+/// macro to print a string
+macro_rules! print_string {
+    ($fmt:expr) => {
+        println!($fmt);
+    };
+    // n args
+    ($fmt:expr, $($arg:tt)*) => {
+        #[cfg(feature = "directprint")]
+        println!($fmt, $($arg)*);
+    };
+}
+pub(crate) use print_string;
+
+use crate::signing_block::VERITY_PADDING_BLOCK_ID;
 use crate::SIGNATURE_SCHEME_V2_BLOCK_ID;
 use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
 
-/// Magic number of the APK Signing Block
-pub const MAGIC: &[u8; 16] = b"APK Sig Block 42";
-
-/// Length of the magic number
-pub const MAGIC_LEN: usize = MAGIC.len();
-
-/// Size of a u64
-pub const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
-
 /// Print a hex string up to 20 bytes
+#[cfg(feature = "directprint")]
 pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {
     if data.len() > 20 {
-        println!("{}: {}", type_name, to_hexe(&data[..20]));
+        println!("{}: {}..", type_name, to_hexe(&data[..20]));
     } else {
         println!("{}: {}", type_name, to_hexe(data));
     }
 }
 
+#[cfg(feature = "directprint")]
 /// Convert a slice of bytes to a hex string
 pub(crate) fn to_hexe(data: &[u8]) -> String {
     data.iter()
@@ -38,6 +46,10 @@ pub(crate) fn to_hexe(data: &[u8]) -> String {
         .collect::<Vec<String>>()
         .join("")
 }
+
+/// Print nothing when the feature is not enabled
+#[cfg(not(feature = "directprint"))]
+pub(crate) fn print_hexe(_type_name: &str, _data: &[u8]) {}
 
 /// Magic number decoder
 pub struct MagicNumberDecoder(pub u32);
@@ -67,6 +79,7 @@ impl std::fmt::Display for MagicNumberDecoder {
 }
 
 /// Reader
+#[derive(Debug)]
 pub struct MyReader {
     /// Data
     data: Vec<u8>,
@@ -99,45 +112,84 @@ impl MyReader {
     }
 
     /// Get the data as a slice
-    pub(crate) fn get_to(&mut self, len: usize) -> &[u8] {
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub(crate) fn get_to(&mut self, len: usize) -> Result<&[u8], String> {
         let pos = self.pos;
         self.pos += len;
-        &self.data[pos..self.pos]
-    }
-
-    /// Get the data as a slice
-    pub(crate) fn as_slice(&mut self, end: usize) -> Self {
-        let pos = self.pos;
-        self.pos += end;
-        MyReader {
-            data: self.data[pos..self.pos].to_vec(),
-            pos: 0,
+        match self.data.get(pos..self.pos) {
+            Some(data) => Ok(data),
+            None => {
+                println!(
+                    "Error: out of bounds\n{}",
+                    std::backtrace::Backtrace::force_capture()
+                );
+                Err(format!("Error: out of bounds: {}..{}", pos, self.pos))
+            }
         }
     }
 
-    /// Read a size
-    pub(crate) fn read_size(&mut self) -> usize {
-        self.read_u32() as usize
+    /// Get the data as a slice
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub(crate) fn as_slice(&mut self, end: usize) -> Result<Self, String> {
+        Ok(Self {
+            data: self.get_to(end)?.to_vec(),
+            pos: 0,
+        })
     }
 
-    /// Read a u8
-    pub(crate) fn read_u32(&mut self) -> u32 {
-        let mut buf = [0; 4];
-        buf.copy_from_slice(&self.data[self.pos..self.pos + 4]);
+    /// Read a u32 as size
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub(crate) fn read_size(&mut self) -> Result<usize, String> {
+        let temp = self.read_u32()?;
+        Ok(temp as usize)
+    }
+
+    /// Read a u32
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub(crate) fn read_u32(&mut self) -> Result<u32, String> {
+        let buf = match self.data.get(self.pos..self.pos + 4) {
+            Some(buf) => buf,
+            None => {
+                println!(
+                    "Error: out of bounds:\n{}",
+                    std::backtrace::Backtrace::force_capture()
+                );
+                return Err("Error: out of bounds reading u32".to_string());
+            }
+        };
         self.pos += 4;
-        u32::from_le_bytes(buf)
+        Ok(u32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]]))
     }
 
     /// Read a u64
-    pub(crate) fn read_u64(&mut self) -> u64 {
-        let mut buf = [0; 8];
-        buf.copy_from_slice(&self.data[self.pos..self.pos + 8]);
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub(crate) fn read_u64(&mut self) -> Result<u64, String> {
+        let buf = match self.data.get(self.pos..self.pos + 8) {
+            Some(buf) => buf,
+            None => {
+                println!(
+                    "Error: out of bounds:\n{}",
+                    std::backtrace::Backtrace::force_capture()
+                );
+                return Err("Error: out of bounds reading u64".to_string());
+            }
+        };
         self.pos += 8;
-        u64::from_le_bytes(buf)
+        Ok(u64::from_le_bytes([
+            buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
+        ]))
     }
 
-    /// Read a size
-    pub(crate) fn read_size_u64(&mut self) -> usize {
-        self.read_u64() as usize
+    /// Read a u64 as size
+    /// # Errors
+    /// Returns a string if the parsing fails.
+    pub(crate) fn read_size_u64(&mut self) -> Result<usize, String> {
+        let temp = self.read_u64()?;
+        Ok(temp as usize)
     }
 }
