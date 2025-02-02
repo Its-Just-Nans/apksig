@@ -5,7 +5,7 @@ const BLOCK: [u8; 4096] = [
     248, 15, 0, 0, 0, 0, 0, 0, // u64 apk signing block size
     34, 5, 0, 0, 0, 0, 0, 0, // u64 length of ID-balue pair - 1314
     26, 135, 9, 113, // ID for SignatureSchemeV2
-    26, 5, 0, 0, // legnth of the signers
+    26, 5, 0, 0, // length of the signers
     22, 5, 0, 0, // length of one signer
     216, 2, 0, 0, // length of the signed data
     44, 0, 0, 0, // length of the digests
