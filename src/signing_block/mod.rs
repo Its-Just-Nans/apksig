@@ -194,8 +194,8 @@ impl SigningBlock {
                                 return Err(std::io::Error::new(
                                     std::io::ErrorKind::Other,
                                     format!(
-                                        "Error: idx {} is less than {} (size of u64)",
-                                        idx, SIZE_UINT64
+                                        "Error: starting at {} is less than {} (block size + size of u64)",
+                                        file_len - idx + MAGIC_LEN, block_size + SIZE_UINT64
                                     ),
                                 ));
                             }

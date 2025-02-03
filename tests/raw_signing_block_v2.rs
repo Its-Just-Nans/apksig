@@ -2,16 +2,16 @@
 /// https://github.com/Its-Just-Nans/sms2call/releases/tag/1.0.8
 #[allow(dead_code)]
 const BLOCK: [u8; 4096] = [
-    248, 15, 0, 0, 0, 0, 0, 0, // u64 apk signing block size
+    248, 15, 0, 0, 0, 0, 0, 0, // u64 apk signing block size - 4088
     34, 5, 0, 0, 0, 0, 0, 0, // u64 length of ID-value pair - 1314
     26, 135, 9, 113, // ID for SignatureSchemeV2
-    26, 5, 0, 0, // length of the signers
-    22, 5, 0, 0, // length of one signer
-    216, 2, 0, 0, // length of the signed data
-    44, 0, 0, 0, // length of the digests
-    40, 0, 0, 0, // length of one digest
+    26, 5, 0, 0, // length of the signers - 1306
+    22, 5, 0, 0, // length of one signer - 1302
+    216, 2, 0, 0, // length of the signed data - 728
+    44, 0, 0, 0, // length of the digests - 44
+    40, 0, 0, 0, // length of one digest - 40
     3, 1, 0, 0, // digest algorithm id - 259
-    32, 0, 0, 0, // length of digest
+    32, 0, 0, 0, // length of digest - 32
     // start of digest
     189, 55, 153, 217, 57, 107, 160, 81, 142, 205, 153, 84, 145, 244, 238, 132, 23, 37, 116, 46, 9,
     239, 58, 81, 255, 190, 56, 128, 5, 49, 145, 247, // end of digest
@@ -51,11 +51,11 @@ const BLOCK: [u8; 4096] = [
     32, 102, 24, 191, 140, 45, 117, 245, 167, 76, 122, 12, 250, 139, 93, 239, 100, 51, 6, 138, 91,
     100, 228, // end of certificates
     0, 0, 0, 0, // length of the additional attributes
-    0, 0, 0, 0, // padding
-    12, 1, 0, 0, // length of the signatures
-    8, 1, 0, 0, // length of the signature block
-    3, 1, 0, 0, // sginature algorithm id
-    0, 1, 0, 0, // length signature
+    0, 0, 0, 0, // padding ??
+    12, 1, 0, 0, // length of the signatures - 268
+    8, 1, 0, 0, // length of the signature block - 264
+    3, 1, 0, 0, // sginature algorithm id - 259
+    0, 1, 0, 0, // length signature - 256
     // start signature
     123, 54, 177, 143, 72, 156, 195, 211, 56, 239, 231, 193, 128, 230, 242, 202, 147, 18, 249, 222,
     179, 154, 233, 126, 94, 94, 75, 215, 40, 226, 236, 43, 107, 78, 14, 100, 178, 107, 69, 216,
@@ -176,7 +176,7 @@ const BLOCK: [u8; 4096] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // end of padding
-    248, 15, 0, 0, 0, 0, 0, 0, // block size
+    248, 15, 0, 0, 0, 0, 0, 0, // block size - 4088
     65, 80, 75, 32, 83, 105, 103, 32, 66, 108, 111, 99, 107, 32, 52, 50,
     // magic
 ];
