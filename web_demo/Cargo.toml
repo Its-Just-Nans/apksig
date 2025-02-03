@@ -16,3 +16,6 @@ web-sys = { version = "0.3", features = [
 ] }
 apksig = { path = "../" }
 serde_json = { version = "1.0.137", features = ["preserve_order"] }
+sha1 = "0.10.6"
+sha2 = "0.10.8"
+md5 = "0.7.0"

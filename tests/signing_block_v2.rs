@@ -254,31 +254,27 @@ mod test {
         let pubkey = PUBKEY.to_vec();
         let certificate = CERTIFICATE.to_vec();
 
+        let mut signed_data = SignedData::new(
+            Digests::new(vec![Digest::new(
+                digest_signature_algorithm_id,
+                digest.clone(),
+            )]),
+            Certificates::new(vec![Certificate::new(certificate)]),
+            AdditionalAttributes::new(vec![]),
+        );
+        signed_data.size += 4;
+
         let content = vec![
-            ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2 {
-                size: 1314,
-                id: SIGNATURE_SCHEME_V2_BLOCK_ID,
-                signers: Signers {
-                    size: 1306,
-                    signers_data: vec![Signer {
-                        size: 1302,
-                        signed_data: SignedData {
-                            size: 728,
-                            digests: Digests::new(vec![Digest::new(
-                                digest_signature_algorithm_id,
-                                digest.clone(),
-                            )]),
-                            certificates: Certificates::new(vec![Certificate::new(certificate)]),
-                            additional_attributes: AdditionalAttributes::new(vec![]),
-                        },
-                        signatures: Signatures::new(vec![Signature::new(
-                            signature_signature_algorithm_id,
-                            signature,
-                        )]),
-                        pub_key: PubKey::new(pubkey),
-                    }],
-                },
-            }),
+            ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2::new(Signers::new(vec![
+                Signer::new(
+                    signed_data,
+                    Signatures::new(vec![Signature::new(
+                        signature_signature_algorithm_id,
+                        signature,
+                    )]),
+                    PubKey::new(pubkey),
+                ),
+            ]))),
             ValueSigningBlock::BaseSigningBlock(RawData::new(
                 VERITY_PADDING_BLOCK_ID,
                 vec![0; 2730],
@@ -305,7 +301,7 @@ mod test {
             // } else {
             //     "".to_string()
             // };
-            // println!("{}", error);
+            // println!("{} {} == {} - {}", i, c, &serialized_sig[i], error);
             assert_eq!(c, &serialized_sig[i]);
         }
 

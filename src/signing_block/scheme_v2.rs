@@ -1,6 +1,8 @@
 //! From
 //! https://source.android.com/docs/security/features/apksigning/v2
 
+use std::mem;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -10,6 +12,7 @@ use crate::common::Certificates;
 use crate::common::Digests;
 use crate::common::PubKey;
 use crate::common::Signatures;
+use crate::utils::print_string;
 use crate::MyReader;
 
 /// Signature Scheme V2
@@ -42,6 +45,14 @@ pub struct Signers {
 }
 
 impl Signers {
+    /// Create a new signers
+    pub fn new(signers_data: Vec<Signer>) -> Self {
+        let size = signers_data
+            .iter()
+            .fold(0, |acc, s| acc + s.size + mem::size_of::<u32>());
+        Self { size, signers_data }
+    }
+
     /// Parse the signers
     /// # Errors
     /// Returns a string if the parsing fails.
@@ -52,7 +63,7 @@ impl Signers {
             signers_data: Vec::new(),
         };
         add_space!(4);
-        println!("size_signers: {}", size_signers);
+        print_string!("size_signers: {}", size_signers);
         let data = &mut data.as_slice(size_signers)?;
         while data.get_pos() < data.len() {
             let signer = Signer::parse(data)?;
@@ -98,13 +109,28 @@ pub struct Signer {
 }
 
 impl Signer {
+    /// Create a new signer
+    pub fn new(signed_data: SignedData, signatures: Signatures, pub_key: PubKey) -> Self {
+        let size = mem::size_of::<u32>()
+            + signed_data.size
+            + mem::size_of::<u32>()
+            + signatures.size
+            + mem::size_of::<u32>()
+            + pub_key.size;
+        Self {
+            size,
+            signed_data,
+            signatures,
+            pub_key,
+        }
+    }
     /// Parse the signer
     /// # Errors
     /// Returns a string if the parsing fails.
     pub fn parse(data: &mut MyReader) -> Result<Self, String> {
         let size_one_signer = data.read_size()?;
         add_space!(8);
-        println!("size_one_signer: {}", size_one_signer);
+        print_string!("size_one_signer: {}", size_one_signer);
         let signed_data = SignedData::parse(data)?;
         let signatures = Signatures::parse(data)?;
         let pub_key = PubKey::parse(data)?;
@@ -154,13 +180,33 @@ pub struct SignedData {
 }
 
 impl SignedData {
+    /// Create a new signed data
+    pub fn new(
+        digests: Digests,
+        certificates: Certificates,
+        additional_attributes: AdditionalAttributes,
+    ) -> Self {
+        let size = mem::size_of::<u32>()
+            + digests.size
+            + mem::size_of::<u32>()
+            + certificates.size
+            + mem::size_of::<u32>()
+            + additional_attributes.size;
+        Self {
+            size,
+            digests,
+            certificates,
+            additional_attributes,
+        }
+    }
+
     /// Parse the signed data
     /// # Errors
     /// Returns a string if the parsing fails.
     pub fn parse(data: &mut MyReader) -> Result<Self, String> {
         let size_signed_data = data.read_size()?;
         add_space!(8);
-        println!("size_signed_data: {}", size_signed_data);
+        print_string!("size_signed_data: {}", size_signed_data);
         let data = &mut data.as_slice(size_signed_data)?;
         let digests = Digests::parse(data)?;
         let certificates = Certificates::parse(data)?;
@@ -195,10 +241,21 @@ impl SignedData {
 }
 
 impl SignatureSchemeV2 {
+    /// Create a new signature scheme V2
+    pub fn new(signers: Signers) -> Self {
+        let size = mem::size_of::<u32>() + mem::size_of::<u32>() + signers.size;
+        print_string!("size: {}", size);
+        Self {
+            size,
+            id: SIGNATURE_SCHEME_V2_BLOCK_ID,
+            signers,
+        }
+    }
+
     /// Creates a new `SignatureSchemeV2` with the given size, ID, and data.
     /// # Errors
     /// Returns a string if the parsing fails.
-    pub fn new(size: usize, id: u32, data: &mut MyReader) -> Result<Self, String> {
+    pub fn parse(size: usize, id: u32, data: &mut MyReader) -> Result<Self, String> {
         Ok(Self {
             size,
             id,

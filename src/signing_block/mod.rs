@@ -32,7 +32,7 @@ pub const MAGIC_LEN: usize = MAGIC.len();
 pub const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
 
 /// Size of a u64
-const SIZE_UINT64: usize = 8;
+const SIZE_UINT64: usize = mem::size_of::<u64>();
 
 /// Raw data extracted from the APK Signing Block
 #[derive(Debug)]
@@ -106,10 +106,10 @@ impl ValueSigningBlock {
         print_string!("Pair Content:");
         let block_to_add = match pair_id {
             SIGNATURE_SCHEME_V2_BLOCK_ID => ValueSigningBlock::SignatureSchemeV2Block(
-                SignatureSchemeV2::new(pair_size, pair_id, block_value)?,
+                SignatureSchemeV2::parse(pair_size, pair_id, block_value)?,
             ),
             SIGNATURE_SCHEME_V3_BLOCK_ID => ValueSigningBlock::SignatureSchemeV3Block(
-                SignatureSchemeV3::new(pair_size, pair_id, block_value)?,
+                SignatureSchemeV3::parse(pair_size, pair_id, block_value)?,
             ),
             VERITY_PADDING_BLOCK_ID => {
                 add_space!(4);
@@ -221,7 +221,7 @@ impl SigningBlock {
                     }
                 }
                 Err(_) => {
-                    println!("Error reading file, {}", file_len - idx);
+                    eprintln!("Error reading file, {}", file_len - idx);
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::Other,
                         "Error reading file",
@@ -326,7 +326,6 @@ impl SigningBlock {
                     data[start_magic - SIZE_UINT64 + 6],
                     data[start_magic - SIZE_UINT64 + 7],
                 ]) as usize;
-                println!("Size: {}", size);
                 let start_full_block = match start_magic.checked_sub(size - MAGIC_LEN + SIZE_UINT64)
                 {
                     Some(v) => v,
@@ -337,9 +336,6 @@ impl SigningBlock {
                         ));
                     }
                 };
-                println!("Start Full Block: {}", start_full_block);
-                println!("End Magic: {}", end_magic);
-                println!("data len: {}", data.len());
                 let sig = Self::parse_full_block(&data[start_full_block..end_magic])?;
                 return Ok(sig);
             }
@@ -357,7 +353,6 @@ impl SigningBlock {
     fn extract_values(data: &mut MyReader) -> Result<Vec<ValueSigningBlock>, String> {
         let mut blocks = Vec::new();
         while data.get_pos() < data.len() {
-            println!("DATA POS: {}", data.get_pos());
             blocks.push(ValueSigningBlock::parse(data)?);
         }
         Ok(blocks)

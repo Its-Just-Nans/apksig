@@ -106,7 +106,6 @@ impl Digests {
         let size = digests_data
             .iter()
             .fold(0, |acc, d| acc + d.size + mem::size_of::<u32>());
-        print_string!("size_digests: {} {}", size, digests_data[0].size);
         Self { size, digests_data }
     }
 
@@ -229,6 +228,57 @@ impl Certificate {
         Self {
             size: certificate.len(),
             certificate,
+        }
+    }
+
+    /// Returns the SHA256 hash of the certificate.
+    #[cfg(feature = "hash")]
+    pub fn sha256_cert(&self) -> Vec<u8> {
+        use sha2::{Digest, Sha256};
+        let mut hasher = Sha256::new();
+        hasher.update(&self.certificate);
+        hasher.finalize().to_vec()
+    }
+
+    /// Returns the MD5 hash of the certificate.
+    #[cfg(feature = "hash")]
+    pub fn md5_cert(&self) -> Vec<u8> {
+        md5::compute(&self.certificate).to_vec()
+    }
+
+    /// Decodes the certificate of the signed data.
+    #[cfg(feature = "hash")]
+    pub fn sha1_cert(&self) -> Vec<u8> {
+        use sha1::{Digest, Sha1};
+        let mut hasher = Sha1::new();
+        hasher.update(&self.certificate);
+        hasher.finalize().to_vec()
+    }
+
+    /// Decodes the certificate of the signed data.
+    /// # Errors
+    /// Returns a string if the data is not valid.
+    #[cfg(feature = "certificate")]
+    pub fn get_issuer(&self) -> Result<String, String> {
+        use x509_parser::prelude::FromDer;
+
+        let res = x509_parser::prelude::X509Certificate::from_der(&self.certificate);
+        match res {
+            Ok((_rem, cert)) => {
+                let name = match cert.tbs_certificate.issuer().iter_common_name().next() {
+                    Some(name_attribute) => match name_attribute.as_str() {
+                        Ok(name) => Some(name.to_string()),
+                        _ => None,
+                    },
+                    None => None,
+                };
+
+                match name {
+                    Some(name) => Ok(name),
+                    None => Err("Issuer not found".to_string()),
+                }
+            }
+            _ => Err("x509 parsing failed".to_string()),
         }
     }
 

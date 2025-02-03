@@ -1,6 +1,8 @@
 //! From
 //! https://source.android.com/docs/security/features/apksigning/v3
 
+use std::mem;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -263,9 +265,19 @@ pub struct SignedDataLevels {
 
 impl SignatureSchemeV3 {
     /// Create a new signature scheme V3
+    pub fn new(signers: Signers) -> Self {
+        let size = mem::size_of::<u32>() + signers.size;
+        Self {
+            size,
+            id: SIGNATURE_SCHEME_V3_BLOCK_ID,
+            signers,
+        }
+    }
+
+    /// Create a new signature scheme V3
     /// # Errors
     /// Returns a string if the data is not valid
-    pub fn new(size: usize, id: u32, data: &mut MyReader) -> Result<Self, String> {
+    pub fn parse(size: usize, id: u32, data: &mut MyReader) -> Result<Self, String> {
         Ok(Self {
             size,
             id,

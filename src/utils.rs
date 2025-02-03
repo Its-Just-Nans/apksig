@@ -14,6 +14,7 @@ pub(crate) use add_space;
 /// macro to print a string
 macro_rules! print_string {
     ($fmt:expr) => {
+        #[cfg(feature = "directprint")]
         println!($fmt);
     };
     // n args
@@ -120,7 +121,7 @@ impl MyReader {
         match self.data.get(pos..self.pos) {
             Some(data) => Ok(data),
             None => {
-                println!(
+                eprintln!(
                     "Error: out of bounds\n{}",
                     std::backtrace::Backtrace::force_capture()
                 );
@@ -154,7 +155,7 @@ impl MyReader {
         let buf = match self.data.get(self.pos..self.pos + 4) {
             Some(buf) => buf,
             None => {
-                println!(
+                eprintln!(
                     "Error: out of bounds:\n{}",
                     std::backtrace::Backtrace::force_capture()
                 );
@@ -172,7 +173,7 @@ impl MyReader {
         let buf = match self.data.get(self.pos..self.pos + 8) {
             Some(buf) => buf,
             None => {
-                println!(
+                eprintln!(
                     "Error: out of bounds:\n{}",
                     std::backtrace::Backtrace::force_capture()
                 );

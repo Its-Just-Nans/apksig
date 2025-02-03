@@ -46,6 +46,34 @@ pub fn process_file(data: &[u8]) -> String {
     return "{\"error\": \"Error processing file\"}".to_string();
 }
 
+fn multi_sha(data: &[u8]) -> (String, String, String) {
+    use sha1::{Digest, Sha1};
+    use sha2::Sha256;
+    use std::fmt::Write;
+
+    let mut hasher = Sha256::new();
+    hasher.update(data);
+    let sha256 = hasher.finalize().to_vec();
+    let md5 = md5::compute(data).to_vec();
+    let mut hasher = Sha1::new();
+    hasher.update(data);
+    let sha1 = hasher.finalize().to_vec();
+    (
+        sha256.iter().fold(String::new(), |mut out, b| {
+            let _ = write!(out, "{b:02x}");
+            out
+        }),
+        md5.iter().fold(String::new(), |mut out, b| {
+            let _ = write!(out, "{b:02x}");
+            out
+        }),
+        sha1.iter().fold(String::new(), |mut out, b| {
+            let _ = write!(out, "{b:02x}");
+            out
+        }),
+    )
+}
+
 fn display_signature(sig: &SigningBlock) {
     let json = serde_json::to_value(sig).expect("Error serializing data");
     let html = generate_recursive_html(&json);
@@ -93,6 +121,23 @@ fn generate_recursive_html(json: &Value) -> String {
             if all_numbers {
                 html.push_str(&format!("<span>len: {}</span>", arr.len()));
                 if !arr.is_empty() {
+                    let (sha256, md5, sha1) = multi_sha(
+                        &arr.iter()
+                            .map(|x| x.as_u64().unwrap() as u8)
+                            .collect::<Vec<u8>>(),
+                    );
+                    html.push_str(&format!(
+                        "<details><summary>SHA256</summary><span>{}</span></details>",
+                        sha256
+                    ));
+                    html.push_str(&format!(
+                        "<details><summary>MD5</summary><span>{}</span></details>",
+                        md5
+                    ));
+                    html.push_str(&format!(
+                        "<details><summary>SHA1</summary><span>{}</span></details>",
+                        sha1
+                    ));
                     html.push_str(&format!(
                         "<details><summary>[u8]</summary><span>[{}]</span></details>",
                         arr.iter()
