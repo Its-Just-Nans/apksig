@@ -44,16 +44,14 @@ mod test {
                 Signature, Signatures,
             },
             scheme_v2::{SignedData, Signer, Signers},
-            signing_block::VERITY_PADDING_BLOCK_ID,
-            RawData, SignatureSchemeV2, SigningBlock, ValueSigningBlock, MAGIC,
+            SignatureSchemeV2, SigningBlock, ValueSigningBlock,
         };
         use x509_parser::prelude::{FromDer, X509Certificate};
 
         // value needed to create the signing block
         let cert = CERTIFICATE.to_vec();
-        let digest_signature_algorithm_id = 0x103;
+        let signature_algorithm_id = 0x103;
         let digest = DIGEST.to_vec();
-        let signature_signature_algorithm_id = 0x103;
         let signature = SIGNATURE.to_vec();
 
         // extract public key from certificate
@@ -63,40 +61,22 @@ mod test {
 
         // start block creation
         let mut signed_data = SignedData::new(
-            Digests::new(vec![Digest::new(
-                digest_signature_algorithm_id,
-                digest.clone(),
-            )]),
+            Digests::new(vec![Digest::new(signature_algorithm_id, digest.clone())]),
             Certificates::new(vec![certificate]),
             AdditionalAttributes::new(vec![]),
         );
         signed_data.size += 4;
 
-        let content = vec![
+        let content =
             ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2::new(Signers::new(vec![
                 Signer::new(
                     signed_data,
-                    Signatures::new(vec![Signature::new(
-                        signature_signature_algorithm_id,
-                        signature,
-                    )]),
+                    Signatures::new(vec![Signature::new(signature_algorithm_id, signature)]),
                     PubKey::new(pubkey),
                 ),
-            ]))),
-            ValueSigningBlock::BaseSigningBlock(RawData::new(
-                VERITY_PADDING_BLOCK_ID,
-                vec![0; 2730],
-            )),
-        ];
-        let sig = SigningBlock {
-            magic: MAGIC.to_owned(),
-            content_size: content.iter().map(|c| c.to_u8().len()).sum(),
-            file_offset_start: 0,
-            file_offset_end: 0,
-            size_of_block_start: 4088,
-            size_of_block_end: 4088,
-            content,
-        };
+            ])));
+
+        let sig = SigningBlock::new_with_padding(vec![content]).unwrap();
 
         let serialized_sig = sig.to_u8();
 

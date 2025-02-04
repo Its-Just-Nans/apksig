@@ -250,8 +250,10 @@ mod test {
         let signature_algorithm_id = 0x103;
         let digest = DIGEST.to_vec();
         let signature = SIGNATURE.to_vec();
-        let pubkey = PUBKEY.to_vec();
         let certificate = CERTIFICATE.to_vec();
+        let pubkey = PUBKEY.to_vec();
+        // technically you can extract the pubkey from the certificate
+        // see test_certificate.rs for more info
 
         let mut signed_data = SignedData::new(
             Digests::new(vec![Digest::new(signature_algorithm_id, digest.clone())]),
