@@ -1,6 +1,6 @@
 #![recursion_limit = "1024"]
 
-use apksig::SigningBlock;
+use apksig::{utils::MagicNumberDecoder, SigningBlock};
 use console_error_panic_hook::set_once as set_panic_hook;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -76,7 +76,7 @@ fn multi_sha(data: &[u8]) -> (String, String, String) {
 
 fn display_signature(sig: &SigningBlock) {
     let json = serde_json::to_value(sig).expect("Error serializing data");
-    let html = generate_recursive_html(&json);
+    let html = generate_recursive_html(&json, None);
 
     let document = window()
         .and_then(|win| win.document())
@@ -103,13 +103,13 @@ fn display_signature(sig: &SigningBlock) {
 }
 
 // This function generates the HTML recursively
-fn generate_recursive_html(json: &Value) -> String {
+fn generate_recursive_html(json: &Value, key: Option<String>) -> String {
     match json {
         Value::Object(obj) => {
             let mut html = String::new();
             for (key, value) in obj {
                 html.push_str(&format!("<details><summary>{}</summary>", key));
-                html.push_str(&generate_recursive_html(value));
+                html.push_str(&generate_recursive_html(value, Some(key.to_string())));
                 html.push_str("</details>");
             }
             html
@@ -173,14 +173,25 @@ fn generate_recursive_html(json: &Value) -> String {
             } else {
                 for (i, value) in arr.iter().enumerate() {
                     html.push_str(&format!("<details><summary>Item {}</summary>", i + 1));
-                    html.push_str(&generate_recursive_html(value));
+                    html.push_str(&generate_recursive_html(value, Some(i.to_string())));
                     html.push_str("</details>");
                 }
             }
             html
         }
         Value::String(s) => format!("<span>{}</span>", s.clone()),
-        Value::Number(n) => format!("<span>{}</span>", n.to_string()),
+        Value::Number(n) => match key {
+            Some(k) if !k.contains("size") && !k.starts_with("file_") => {
+                let formatted = match n.as_u64() {
+                    Some(n_num) => {
+                        format!("{} {}", n_num, MagicNumberDecoder(n_num as u32))
+                    }
+                    None => n.to_string(),
+                };
+                format!("<span>{}</span>", formatted)
+            }
+            _ => format!("<span>{}</span>", n.to_string()),
+        },
         Value::Bool(b) => format!("<span>{}</span>", b.to_string()),
         Value::Null => format!("<span>{}</span>", "null".to_string()),
     }
