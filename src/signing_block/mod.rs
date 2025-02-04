@@ -35,7 +35,7 @@ pub const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
 const SIZE_UINT64: usize = mem::size_of::<u64>();
 
 /// Raw data extracted from the APK Signing Block
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RawData {
     /// Size of the data
@@ -68,7 +68,7 @@ impl RawData {
 }
 
 /// Value of the APK Signing Block
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ValueSigningBlock {
     /// Base Signing Block
@@ -82,6 +82,30 @@ pub enum ValueSigningBlock {
 }
 
 impl ValueSigningBlock {
+    /// ID of the value
+    pub fn id(&self) -> u32 {
+        match self {
+            ValueSigningBlock::BaseSigningBlock(ref block) => block.id,
+            ValueSigningBlock::SignatureSchemeV2Block(ref scheme) => scheme.id,
+            ValueSigningBlock::SignatureSchemeV3Block(ref scheme) => scheme.id,
+        }
+    }
+
+    /// Size of the inner value
+    pub fn inner_size(&self) -> usize {
+        match self {
+            ValueSigningBlock::BaseSigningBlock(ref block) => block.size,
+            ValueSigningBlock::SignatureSchemeV2Block(ref scheme) => scheme.size,
+            ValueSigningBlock::SignatureSchemeV3Block(ref scheme) => scheme.size,
+        }
+    }
+
+    /// Size of the value
+    pub fn size(&self) -> usize {
+        // size of the inner value + size of u64
+        self.inner_size() + mem::size_of::<u64>()
+    }
+
     /// Parse the value
     /// # Errors
     /// Returns a string if the parsing fails.
@@ -166,6 +190,60 @@ pub struct SigningBlock {
 }
 
 impl SigningBlock {
+    /// Create a new SigningBlock
+    /// # Errors
+    /// Return an error appends during creation of the block
+    pub fn new_with_padding(content: Vec<ValueSigningBlock>) -> Result<Self, std::io::Error> {
+        for c in &content {
+            if c.id() == VERITY_PADDING_BLOCK_ID {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Error: Padding block already exists",
+                ));
+            }
+        }
+        let content_size = content.iter().fold(0, |acc, x| acc + x.size());
+        let almost_full_size = SIZE_UINT64 + content_size + SIZE_UINT64 + MAGIC_LEN;
+        println!("Almost full size: {} , {}", content_size, almost_full_size);
+        // padding content to match 4096 bytes multiple
+        let padding_block = match almost_full_size % 4096 {
+            0 => Vec::new(),
+            v => {
+                let padding_size = match (4096_usize)
+                    .checked_sub(v + mem::size_of::<u32>() + mem::size_of::<u64>())
+                {
+                    Some(v) => v,
+                    None => {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!(
+                                "Error: remaining size {} is too low to add padding block - try to manually pad the inner block",
+                                4096 - v - mem::size_of::<u32>() - mem::size_of::<u64>()
+                            ),
+                        ));
+                    }
+                };
+                vec![ValueSigningBlock::BaseSigningBlock(RawData::new(
+                    VERITY_PADDING_BLOCK_ID,
+                    vec![0; padding_size],
+                ))]
+            }
+        };
+        let new_content = [content, padding_block].concat();
+        let size = new_content.iter().fold(0, |acc, x| acc + x.size());
+        let size = size + SIZE_UINT64 + MAGIC_LEN;
+        debug_assert!((SIZE_UINT64 + size) % 4096 == 0);
+        Ok(Self {
+            file_offset_start: 0,
+            file_offset_end: 0,
+            size_of_block_start: size,
+            content_size,
+            content: new_content,
+            size_of_block_end: size,
+            magic: *MAGIC,
+        })
+    }
+
     /// Extract the APK Signing Block from the APK file
     /// # Errors
     /// Return an error appends during decoding

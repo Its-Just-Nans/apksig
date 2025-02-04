@@ -247,62 +247,42 @@ mod test {
     #[test]
     fn test_create_signing_block_with_builders() {
         // value needed to create the signing block
-        let digest_signature_algorithm_id = 0x103;
+        let signature_algorithm_id = 0x103;
         let digest = DIGEST.to_vec();
-        let signature_signature_algorithm_id = 0x103;
         let signature = SIGNATURE.to_vec();
         let pubkey = PUBKEY.to_vec();
         let certificate = CERTIFICATE.to_vec();
 
         let mut signed_data = SignedData::new(
-            Digests::new(vec![Digest::new(
-                digest_signature_algorithm_id,
-                digest.clone(),
-            )]),
+            Digests::new(vec![Digest::new(signature_algorithm_id, digest.clone())]),
             Certificates::new(vec![Certificate::new(certificate)]),
             AdditionalAttributes::new(vec![]),
         );
         signed_data.size += 4;
 
-        let content = vec![
+        let content =
             ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2::new(Signers::new(vec![
                 Signer::new(
                     signed_data,
-                    Signatures::new(vec![Signature::new(
-                        signature_signature_algorithm_id,
-                        signature,
-                    )]),
+                    Signatures::new(vec![Signature::new(signature_algorithm_id, signature)]),
                     PubKey::new(pubkey),
                 ),
-            ]))),
-            ValueSigningBlock::BaseSigningBlock(RawData::new(
-                VERITY_PADDING_BLOCK_ID,
-                vec![0; 2730],
-            )),
-        ];
-        let sig = SigningBlock {
-            magic: MAGIC.to_owned(),
-            content_size: content.iter().map(|c| c.to_u8().len()).sum(),
-            file_offset_start: 0,
-            file_offset_end: 0,
-            size_of_block_start: 4088,
-            size_of_block_end: 4088,
-            content,
-        };
+            ])));
+        let sig = SigningBlock::new_with_padding(vec![content]).unwrap();
 
         let serialized_sig = sig.to_u8();
 
-        for (i, c) in BLOCK.iter().enumerate() {
-            // let error = if c != &serialized_sig[i] {
+        for (i, original) in BLOCK.iter().enumerate() {
+            // let error = if original != &serialized_sig[i] {
             //     format!(
             //         "Expected {:?} but got {:?} at index {}",
-            //         c, &serialized_sig[i], i
+            //         original, &serialized_sig[i], i
             //     )
             // } else {
             //     "".to_string()
             // };
-            // println!("{} {} == {} - {}", i, c, &serialized_sig[i], error);
-            assert_eq!(c, &serialized_sig[i]);
+            // println!("{} {} == {} - {}", i, original, &serialized_sig[i], error);
+            assert_eq!(original, &serialized_sig[i]);
         }
 
         assert_eq!(&BLOCK[..], &serialized_sig);

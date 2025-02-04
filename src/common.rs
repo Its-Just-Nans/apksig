@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// The `Digest` struct represents the digest of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Digest {
     /// The size of the digest.
@@ -90,7 +90,7 @@ impl Digest {
 }
 
 /// The `Digests` struct represents the digests of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Digests {
     /// The size of the digests.
@@ -150,7 +150,7 @@ impl Digests {
 }
 
 /// The `Certificates` struct represents the certificates of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Certificates {
     /// The size of the certificates.
@@ -213,7 +213,7 @@ impl Certificates {
 }
 
 /// The `Certificate` struct represents the certificate of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Certificate {
     /// The certificate of the signed data.
@@ -312,7 +312,7 @@ impl Certificate {
 }
 
 /// The `Signatures` struct represents the signatures of the signer.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signatures {
     /// The size of the signatures.
@@ -376,7 +376,7 @@ impl Signatures {
 }
 
 /// The `Signature` struct represents the signature of the signer.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signature {
     /// The size of the signature.
@@ -448,7 +448,7 @@ impl Signature {
 }
 
 /// The `AdditionalAttributes` struct represents the additional attributes of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AdditionalAttributes {
     /// The size of the additional attributes.
@@ -510,7 +510,7 @@ impl AdditionalAttributes {
 }
 
 /// The `TinyRawData` struct represents the tiny raw data of the signed data.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct AdditionalAttribute {
     /// The size of the tiny raw data.
@@ -558,7 +558,7 @@ impl AdditionalAttribute {
 }
 
 /// The `PublicKey` struct represents the public key of the signer.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PubKey {
     /// The size of the public key.

@@ -23,7 +23,7 @@ pub const SIGNATURE_SCHEME_V3_BLOCK_ID: u32 = 0xf05368c0;
 pub const PROOF_OF_ROTATION_BLOCK_ID: u32 = 0x3ba06f8c;
 
 /// SignatureSchemeV3
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SignatureSchemeV3 {
     /// size
@@ -38,7 +38,7 @@ pub struct SignatureSchemeV3 {
 }
 
 /// Signers
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signers {
     /// size
@@ -80,7 +80,7 @@ impl Signers {
 }
 
 /// The `Signer` struct represents the signer of the signature scheme.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signer {
     /// The size of the signer.
@@ -153,7 +153,7 @@ impl Signer {
 }
 
 /// The `SignedData` struct represents the signed data of the signer.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SignedData {
     /// The size of the signed data.

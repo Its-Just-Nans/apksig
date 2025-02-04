@@ -19,7 +19,7 @@ use crate::MyReader;
 pub const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;
 
 /// The `SignatureSchemeV2` struct represents the V2 signature scheme.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SignatureSchemeV2 {
     /// The size of the signature scheme.
@@ -34,7 +34,7 @@ pub struct SignatureSchemeV2 {
 }
 
 /// The `Signers` struct represents the signers of the signature scheme.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signers {
     /// The size of the signers
@@ -92,7 +92,7 @@ impl Signers {
 }
 
 /// The `Signer` struct represents the signer of the signature scheme.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signer {
     /// The size of the signer.
@@ -163,7 +163,7 @@ impl Signer {
 }
 
 /// The `SignedData` struct represents the signed data of the signer.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SignedData {
     /// The size of the signed data.
@@ -244,7 +244,6 @@ impl SignatureSchemeV2 {
     /// Create a new signature scheme V2
     pub fn new(signers: Signers) -> Self {
         let size = mem::size_of::<u32>() + mem::size_of::<u32>() + signers.size;
-        print_string!("size: {}", size);
         Self {
             size,
             id: SIGNATURE_SCHEME_V2_BLOCK_ID,
