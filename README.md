@@ -16,3 +16,16 @@ cargo install apksig
 
 apksig myapp.apk
 ```
+
+## Rust features
+
+To use `apksign` without dependencies, or only with useful dependencies for your use case, you can disable features.
+
+```toml
+[dependencies]
+apksig = { version = "0.1", default-features = false } # you want nothing
+# or
+apksig = { version = "0.1", default-features = false, features = ["serde", "hash"] } # you want only some features
+```
+
+See [./Cargo.toml](./Cargo.toml) for all available features and documentation.
