@@ -43,7 +43,7 @@ use utils::add_space;
 pub fn real_main() -> Result<i32, Box<dyn std::error::Error>> {
     let args: Vec<_> = std::env::args().collect();
     if args.len() < 2 {
-        println!("Usage: {} <filename>", args[0]);
+        eprintln!("Usage: {} <filename>", args[0]);
         return Ok(1);
     }
     let fname = std::path::Path::new(&args[1]);

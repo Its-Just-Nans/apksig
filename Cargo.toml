@@ -27,3 +27,5 @@ certificate = ["dep:x509-parser"]
 directprint = []
 
 hash = ["dep:md5", "dep:sha1", "dep:sha2"]
+
+traceback = []

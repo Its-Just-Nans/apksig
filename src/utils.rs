@@ -30,12 +30,13 @@ use crate::SIGNATURE_SCHEME_V2_BLOCK_ID;
 use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
 
 /// Print a hex string up to 20 bytes
-#[cfg(feature = "directprint")]
 pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {
-    if data.len() > 20 {
-        println!("{}: {}..", type_name, to_hexe(&data[..20]));
-    } else {
-        println!("{}: {}", type_name, to_hexe(data));
+    if cfg!(feature = "directprint") {
+        if data.len() > 20 {
+            print_string!("{}: {}..", type_name, to_hexe(&data[..20]));
+        } else {
+            print_string!("{}: {}", type_name, to_hexe(data));
+        }
     }
 }
 
@@ -47,10 +48,6 @@ pub(crate) fn to_hexe(data: &[u8]) -> String {
         .collect::<Vec<String>>()
         .join("")
 }
-
-/// Print nothing when the feature is not enabled
-#[cfg(not(feature = "directprint"))]
-pub(crate) fn print_hexe(_type_name: &str, _data: &[u8]) {}
 
 /// Magic number decoder
 pub struct MagicNumberDecoder(pub u32);
@@ -121,11 +118,16 @@ impl MyReader {
         match self.data.get(pos..self.pos) {
             Some(data) => Ok(data),
             None => {
-                eprintln!(
-                    "Error: out of bounds\n{}",
-                    std::backtrace::Backtrace::force_capture()
-                );
-                Err(format!("Error: out of bounds: {}..{}", pos, self.pos))
+                if cfg!(feature = "traceback") {
+                    Err(format!(
+                        "Error: out of bounds {}..{}\n{}",
+                        pos,
+                        self.pos,
+                        std::backtrace::Backtrace::force_capture()
+                    ))
+                } else {
+                    Err(format!("Error: out of bounds: {}..{}", pos, self.pos))
+                }
             }
         }
     }
@@ -155,11 +157,14 @@ impl MyReader {
         let buf = match self.data.get(self.pos..self.pos + 4) {
             Some(buf) => buf,
             None => {
-                eprintln!(
-                    "Error: out of bounds:\n{}",
-                    std::backtrace::Backtrace::force_capture()
-                );
-                return Err("Error: out of bounds reading u32".to_string());
+                if cfg!(feature = "traceback") {
+                    return Err(format!(
+                        "Error: out of bounds reading u32\n{}",
+                        std::backtrace::Backtrace::force_capture()
+                    ));
+                } else {
+                    return Err("Error: out of bounds reading u32".to_string());
+                }
             }
         };
         self.pos += 4;
@@ -173,11 +178,14 @@ impl MyReader {
         let buf = match self.data.get(self.pos..self.pos + 8) {
             Some(buf) => buf,
             None => {
-                eprintln!(
-                    "Error: out of bounds:\n{}",
-                    std::backtrace::Backtrace::force_capture()
-                );
-                return Err("Error: out of bounds reading u64".to_string());
+                if cfg!(feature = "traceback") {
+                    return Err(format!(
+                        "Error: out of bounds reading u64\n{}",
+                        std::backtrace::Backtrace::force_capture()
+                    ));
+                } else {
+                    return Err("Error: out of bounds reading u64".to_string());
+                }
             }
         };
         self.pos += 8;

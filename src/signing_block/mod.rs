@@ -221,10 +221,9 @@ impl SigningBlock {
                     }
                 }
                 Err(_) => {
-                    eprintln!("Error reading file, {}", file_len - idx);
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::Other,
-                        "Error reading file",
+                        format!("Error reading file, {}", file_len - idx),
                     ));
                 }
             }
