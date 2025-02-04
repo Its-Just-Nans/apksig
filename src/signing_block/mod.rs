@@ -204,7 +204,6 @@ impl SigningBlock {
         }
         let content_size = content.iter().fold(0, |acc, x| acc + x.size());
         let almost_full_size = SIZE_UINT64 + content_size + SIZE_UINT64 + MAGIC_LEN;
-        println!("Almost full size: {} , {}", content_size, almost_full_size);
         // padding content to match 4096 bytes multiple
         let padding_block = match almost_full_size % 4096 {
             0 => Vec::new(),
