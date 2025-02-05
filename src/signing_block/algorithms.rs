@@ -68,7 +68,7 @@ impl std::fmt::Display for Algorithms {
             Self::DSA_SHA2_256 => "DSA with SHA2-256 digest",
             Self::Unknown(u) => &format!("Unknown algorithm: 0x{:04x}", u),
         };
-        write!(f, "{}", str)
+        write!(f, "{:#x} {}", u32::from(self), str)
     }
 }
 

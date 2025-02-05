@@ -4,7 +4,6 @@
 #![cfg(feature = "hash")]
 
 use std::{
-    fs::File,
     io::{self, BufRead, BufReader, Read, Seek, SeekFrom},
     mem,
 };
@@ -31,11 +30,14 @@ fn digest_chunk(chunk: &[u8], sig: &Algorithms) -> Vec<u8> {
 /// Digest the contents of ZIP entries
 /// # Errors
 /// Returns an error if the file cannot be read
-pub fn digest_zip_contents(
-    file: &mut File,
+pub fn digest_zip_contents<R: Read + Seek>(
+    file: &mut R,
+    start: usize,
     size: usize,
     sig: &Algorithms,
 ) -> Result<Vec<Vec<u8>>, io::Error> {
+    let start = (start) as u64;
+    file.seek(SeekFrom::Start(start))?;
     let next_offset = (size) as u64;
     let taker = file.take(next_offset);
     let mut reader = BufReader::with_capacity(CHUNK_SIZE, taker);
@@ -55,8 +57,8 @@ pub fn digest_zip_contents(
 /// Digest the central directory
 /// # Errors
 /// Returns an error if the file cannot be read
-pub fn digest_central_directory(
-    file: &mut File,
+pub fn digest_central_directory<R: Read + Seek>(
+    file: &mut R,
     start: usize,
     size: usize,
     sig: &Algorithms,
@@ -81,22 +83,21 @@ pub fn digest_central_directory(
 /// Digest the end of central directory
 /// # Errors
 /// Returns an error if the file cannot be read
-pub fn digest_end_of_central_directory(
-    file: &mut File,
+pub fn digest_end_of_central_directory<R: Read + Seek>(
+    file: &mut R,
     start: usize,
-    stop: usize,
-    offset_siging_block: usize,
+    eocd_size: usize,
+    central_directory_offset: usize,
     sig: &Algorithms,
 ) -> Result<Vec<Vec<u8>>, io::Error> {
     let next_offset = (start) as u64;
     file.seek(SeekFrom::Start(next_offset))?;
-    let eocd_size = stop;
     let mut eocd_buff = Vec::with_capacity(eocd_size);
     file.read_to_end(&mut eocd_buff)?;
     // little manipulation to change the offset of the central directory offset
     let eocd_buff = [
         eocd_buff[..16].to_vec(),
-        (offset_siging_block as u32).to_le_bytes().to_vec(),
+        (central_directory_offset as u32).to_le_bytes().to_vec(),
         eocd_buff[20..].to_vec(),
     ]
     .concat();
@@ -124,28 +125,72 @@ pub fn digest_final_digest(chunks: Vec<Vec<u8>>, sig: &Algorithms) -> Vec<u8> {
     sig.hash(&final_chunk)
 }
 
+/// File offsets of the APK (a zip file)
+///
+/// <https://source.android.com/docs/security/features/apksigning/v2>
+///
+/// |       Content of ZIP entries  | APK Signing Block |   Central Directory     |    End of Central Directory   |
+/// |-------------------------------|-------------------|-------------------------|-------------------------------|
+/// | start_content -> stop_content |                   | start_cd   ->   stop_cd | start_eocd    ->    stop_eocd |
+///
+/// Some fields are the same as the others, but they are separated for clarity:
+///
+/// - [`FileOffsets::stop_cd`] and [`FileOffsets::start_eocd`] are generally the same
+/// - [`FileOffsets::stop_content`] and [`FileOffsets::start_cd`] are the same if there is no APK Signing Block
+#[derive(Debug)]
+pub struct FileOffsets {
+    /// Start index of content
+    pub start_content: usize,
+    /// Stop index of content
+    pub stop_content: usize,
+    /// Start index of central directory
+    pub start_cd: usize,
+    /// Stop index of central directory
+    pub stop_cd: usize,
+    /// Start index of end of central directory
+    pub start_eocd: usize,
+    /// Stop index of end of central directory
+    pub stop_eocd: usize,
+}
+
 /// Digest the APK file
 /// # Errors
 /// Returns an error if the file cannot be read
-pub fn digest_apk(
-    apk: &mut File,
-    offsets: (usize, usize, usize, usize),
+pub fn digest_apk<R: Read + Seek>(
+    apk: &mut R,
+    offsets: &FileOffsets,
     algo: &Algorithms,
 ) -> Result<Vec<u8>, io::Error> {
     apk.seek(SeekFrom::Start(0))?;
-    let (start_sig, stop_sig, start_eocd, file_len) = offsets;
+    let FileOffsets {
+        start_content,
+        stop_content,
+        start_cd,
+        stop_cd,
+        start_eocd,
+        stop_eocd,
+    } = *offsets;
     let mut digestives = Vec::new();
-    digestives.append(&mut digest_zip_contents(apk, start_sig, algo)?);
+    digestives.append(&mut digest_zip_contents(
+        apk,
+        start_content,
+        stop_content - start_content,
+        algo,
+    )?);
     // digest central directory
     digestives.append(&mut digest_central_directory(
         apk,
-        stop_sig,
-        start_eocd - stop_sig,
+        start_cd,
+        stop_cd - start_cd,
         algo,
     )?);
     // digest end of central directory
     digestives.append(&mut digest_end_of_central_directory(
-        apk, start_eocd, file_len, start_sig, algo,
+        apk,
+        start_eocd,
+        stop_eocd - start_eocd,
+        stop_content,
+        algo,
     )?);
     for digest in &digestives {
         println!("{:?}", digest);
@@ -190,8 +235,10 @@ pub struct EndOfCentralDirectoryRecord {
 /// Find the EOCD of the APK file
 /// # Errors
 /// Returns an error if the file cannot be read
-pub fn find_oecd(apk: &mut File) -> Result<EndOfCentralDirectoryRecord, io::Error> {
-    let file_len = apk.metadata()?.len() as usize;
+pub fn find_oecd<R: Read + Seek>(
+    apk: &mut R,
+    file_len: usize,
+) -> Result<EndOfCentralDirectoryRecord, io::Error> {
     for i in SIZE_OF_EOCD_SIG..file_len {
         let idx = -(i as i64);
         apk.seek(SeekFrom::End(idx))?;

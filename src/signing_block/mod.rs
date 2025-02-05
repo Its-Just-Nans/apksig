@@ -1,5 +1,5 @@
 //! Module for the APK Signing Block
-//! https://source.android.com/docs/security/features/apksigning
+//! <https://source.android.com/docs/security/features/apksigning>
 
 use std::io::Read;
 use std::io::Seek;

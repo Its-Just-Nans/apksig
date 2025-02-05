@@ -1,5 +1,5 @@
 //! From
-//! https://source.android.com/docs/security/features/apksigning/v2
+//! <https://source.android.com/docs/security/features/apksigning/v2>
 
 use std::mem;
 
