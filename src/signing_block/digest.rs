@@ -1,4 +1,5 @@
 //! Digesting functions for APK
+//! Gated behing the `hash` feature
 
 #![cfg(feature = "hash")]
 
