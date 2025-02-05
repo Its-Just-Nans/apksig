@@ -1,6 +1,6 @@
 [package]
 name = "apksig"
-version = "0.2.6"
+version = "0.2.7"
 edition = "2021"
 description = "Decoding the APK Signing Block"
 documentation = "https://docs.rs/apksig"
@@ -9,7 +9,7 @@ readme = "./README.md"
 repository = "https://github.com/Its-Just-Nans/apksig"
 keywords = ["apk", "android", "signing", "signature", "apksig"]
 categories = ["api-bindings", "command-line-utilities"]
-exclude = ["tests/*.apk"]
+exclude = ["tests/", "web_demo/"]
 
 [dependencies]
 serde = { version = "1.0.217", features = ["derive"], optional = true }

@@ -192,9 +192,6 @@ pub fn digest_apk<R: Read + Seek>(
         stop_content,
         algo,
     )?);
-    for digest in &digestives {
-        println!("{:?}", digest);
-    }
     // create the final digest
     let final_digest = digest_final_digest(digestives, algo);
     Ok(final_digest)

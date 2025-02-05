@@ -61,7 +61,7 @@ mod test {
         let start_sig = sig.file_offset_start;
         let end_sig = sig.file_offset_end;
         let size_sig = end_sig - start_sig;
-        println!("{:?}", (start_sig, end_sig, size_sig));
+        // println!("{:?}", (start_sig, end_sig, size_sig));
 
         let full_raw_file = read(apk).unwrap();
         assert_eq!(full_raw_file.len(), file_len);
