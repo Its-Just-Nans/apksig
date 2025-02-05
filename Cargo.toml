@@ -1,6 +1,6 @@
 [package]
 name = "apksig"
-version = "0.2.5"
+version = "0.2.6"
 edition = "2021"
 description = "Decoding the APK Signing Block"
 documentation = "https://docs.rs/apksig"
