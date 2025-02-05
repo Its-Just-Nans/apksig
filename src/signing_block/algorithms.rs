@@ -21,7 +21,6 @@ pub const SIGNATURE_DSA_256: u32 = 0x0301;
 /// Signature algorithms
 #[derive(Debug, Clone, PartialEq)]
 #[allow(non_camel_case_types)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Algorithms {
     /// RSASSA-PSS with SHA2-256 digest, SHA2-256 MGF1, 32 bytes of salt
     RSASSA_PSS_256,
@@ -39,6 +38,27 @@ pub enum Algorithms {
     DSA_SHA2_256,
     /// Unknown algorithm
     Unknown(u32),
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Algorithms {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        u32::from(self).serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Algorithms {
+    fn deserialize<D>(deserializer: D) -> Result<Algorithms, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let sig = u32::deserialize(deserializer)?;
+        Ok(Algorithms::from(sig))
+    }
 }
 
 impl PartialEq<Algorithms> for u32 {
@@ -68,7 +88,7 @@ impl std::fmt::Display for Algorithms {
             Self::DSA_SHA2_256 => "DSA with SHA2-256 digest",
             Self::Unknown(u) => &format!("Unknown algorithm: 0x{:04x}", u),
         };
-        write!(f, "{:#x} {}", u32::from(self), str)
+        write!(f, "{:#x} - {}", u32::from(self), str)
     }
 }
 

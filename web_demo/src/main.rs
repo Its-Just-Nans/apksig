@@ -181,13 +181,13 @@ fn generate_recursive_html(json: &Value, key: Option<String>) -> String {
         }
         Value::String(s) => format!("<span>{}</span>", s.clone()),
         Value::Number(n) => match key {
-            Some(k) if k == "id" && k == "signature_algorithm_id" => {
+            Some(k) if k == "id" || k == "signature_algorithm_id" => {
                 let formatted = match n.as_u64() {
                     Some(n_num) => {
                         if k == "signature_algorithm_id" {
-                            format!("{} {}", n_num, Algorithms::from(n_num as u32))
+                            format!("{} - {}", n_num, Algorithms::from(n_num as u32))
                         } else {
-                            format!("{} {}", n_num, MagicNumberDecoder::Normal(n_num as u32))
+                            format!("{} - {}", n_num, MagicNumberDecoder::Normal(n_num as u32))
                         }
                     }
                     None => n.to_string(),

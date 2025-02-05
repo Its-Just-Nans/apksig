@@ -8,7 +8,7 @@ mod test {
         use apksig::{
             signing_block::{
                 algorithms::Algorithms,
-                digest::{digest_apk, find_oecd, FileOffsets},
+                digest::{digest_apk, find_eocd, FileOffsets},
             },
             SigningBlock,
         };
@@ -21,7 +21,7 @@ mod test {
         let file_len = file.metadata().unwrap().size() as usize;
         let sig = SigningBlock::from_reader(&mut file, file_len, 0).unwrap();
         // find the eocd of file
-        let eocd = find_oecd(&mut file, file_len).unwrap();
+        let eocd = find_eocd(&mut file, file_len).unwrap();
         let algo = Algorithms::RSASSA_PKCS1_v1_5_256;
         let offsets = FileOffsets {
             start_content: 0,
@@ -42,7 +42,7 @@ mod test {
         use apksig::{
             signing_block::{
                 algorithms::Algorithms,
-                digest::{digest_apk, find_oecd, FileOffsets},
+                digest::{digest_apk, find_eocd, FileOffsets},
             },
             SigningBlock,
         };
@@ -76,7 +76,7 @@ mod test {
         // From now, our file is a raw APK as Vec<u8>, we can use a cursor to wrap it
         // cursor acts as Read + Seek
         let mut cursor = std::io::Cursor::new(&apk_without_signature);
-        let eocd = find_oecd(&mut cursor, file_len).unwrap();
+        let eocd = find_eocd(&mut cursor, file_len).unwrap();
 
         // see docs of FileOffsets for more details
         let offsets = FileOffsets {

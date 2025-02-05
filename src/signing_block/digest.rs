@@ -232,7 +232,7 @@ pub struct EndOfCentralDirectoryRecord {
 /// Find the EOCD of the APK file
 /// # Errors
 /// Returns an error if the file cannot be read
-pub fn find_oecd<R: Read + Seek>(
+pub fn find_eocd<R: Read + Seek>(
     apk: &mut R,
     file_len: usize,
 ) -> Result<EndOfCentralDirectoryRecord, io::Error> {
