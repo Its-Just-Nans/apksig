@@ -1,5 +1,7 @@
 //! # Utils
 
+use std::fmt::LowerHex;
+
 /// macro to add space
 macro_rules! add_space {
     ($n:expr) => {
@@ -37,6 +39,8 @@ pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {
         } else {
             print_string!("{}: {}", type_name, to_hexe(data));
         }
+    } else {
+        let _a = (type_name, data);
     }
 }
 
@@ -50,29 +54,39 @@ pub(crate) fn to_hexe(data: &[u8]) -> String {
 }
 
 /// Magic number decoder
-pub struct MagicNumberDecoder(pub u32);
+#[derive(Debug, PartialEq)]
+pub enum MagicNumberDecoder {
+    /// Normal u32
+    Normal(u32),
+    // Algorithms(Algorithms),
+}
 
 impl std::fmt::Display for MagicNumberDecoder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let str = match self.0 {
-            0x0101 => "RSASSA-PSS with SHA2-256 digest, SHA2-256 MGF1, 32 bytes of salt, trailer: 0xbc",
-            0x0102 => "RSASSA-PSS with SHA2-512 digest, SHA2-512 MGF1, 64 bytes of salt, trailer: 0xbc",
-            0x0103 => "RSASSA-PKCS1-v1_5 with SHA2-256 digest. This is for build systems which require deterministic signatures.",
-            0x0104 => "RSASSA-PKCS1-v1_5 with SHA2-512 digest. This is for build systems which require deterministic signatures.",
-            0x0201 => "ECDSA with SHA2-256 digest",
-            0x0202 => "ECDSA with SHA2-512 digest",
-            0x0301 => "DSA with SHA2-256 digest",
-            // https://android.googlesource.com/platform/tools/apksig/+/master/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java
-            VERITY_PADDING_BLOCK_ID => "VERITY_PADDING_BLOCK_ID",
-            // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
-            0x6dff800d => "SOURCE_STAMP_BLOCK_ID",
-            // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
-            0x9d6303f7 => "PROOF_OF_ROTATION_ATTR_ID",
-            SIGNATURE_SCHEME_V2_BLOCK_ID => "Signature Scheme V2",
-            SIGNATURE_SCHEME_V3_BLOCK_ID => "Signature Scheme V3",
-            _ => "Unknown",
+        let str = match self {
+            // Self::Algorithms(algo) => &algo.to_string(),
+            Self::Normal(num) => match *num {
+                // https://android.googlesource.com/platform/tools/apksig/+/master/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java
+                VERITY_PADDING_BLOCK_ID => "VERITY_PADDING_BLOCK_ID",
+                // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
+                0x6dff800d => "SOURCE_STAMP_BLOCK_ID",
+                // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
+                0x9d6303f7 => "PROOF_OF_ROTATION_ATTR_ID",
+                SIGNATURE_SCHEME_V2_BLOCK_ID => "Signature Scheme V2",
+                SIGNATURE_SCHEME_V3_BLOCK_ID => "Signature Scheme V3",
+                _ => "Unknown",
+            },
         };
-        write!(f, "({:#x}, {})", self.0, str)
+        write!(f, "({:#x}, {})", self, str)
+    }
+}
+
+impl LowerHex for MagicNumberDecoder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Normal(num) => write!(f, "{:#x}", num),
+            // Self::Algorithms(algo) => write!(f, "{:#x}", u32::from(algo)),
+        }
     }
 }
 

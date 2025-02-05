@@ -1,6 +1,6 @@
 #![recursion_limit = "1024"]
 
-use apksig::{utils::MagicNumberDecoder, SigningBlock};
+use apksig::{Algorithms, SigningBlock};
 use console_error_panic_hook::set_once as set_panic_hook;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -184,7 +184,7 @@ fn generate_recursive_html(json: &Value, key: Option<String>) -> String {
             Some(k) if !k.contains("size") && !k.starts_with("file_") => {
                 let formatted = match n.as_u64() {
                     Some(n_num) => {
-                        format!("{} {}", n_num, MagicNumberDecoder(n_num as u32))
+                        format!("{} {}", n_num, Algorithms::from(n_num as u32))
                     }
                     None => n.to_string(),
                 };

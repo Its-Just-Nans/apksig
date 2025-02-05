@@ -9,7 +9,7 @@ mod test {
             Signatures,
         },
         scheme_v2::{SignedData, Signer, Signers},
-        signing_block::{RawData, VERITY_PADDING_BLOCK_ID},
+        signing_block::{algorithms::Algorithms, RawData, VERITY_PADDING_BLOCK_ID},
         utils::MyReader,
         SignatureSchemeV2, SigningBlock, ValueSigningBlock, MAGIC, MAGIC_LEN,
         SIGNATURE_SCHEME_V2_BLOCK_ID,
@@ -167,9 +167,9 @@ mod test {
     #[test]
     fn test_create_signing_block_by_hand() {
         // value needed to create the signing block
-        let digest_signature_algorithm_id = 0x103;
+        let digest_signature_algorithm_id = Algorithms::from(0x103);
         let digest = DIGEST.to_vec();
-        let signature_signature_algorithm_id = 0x103;
+        let signature_signature_algorithm_id = Algorithms::from(0x103);
         let signature = SIGNATURE.to_vec();
         let pubkey = PUBKEY.to_vec();
         let certificate = CERTIFICATE.to_vec();
@@ -247,7 +247,7 @@ mod test {
     #[test]
     fn test_create_signing_block_with_builders() {
         // value needed to create the signing block
-        let signature_algorithm_id = 0x103;
+        let signature_algorithm_id = Algorithms::from(0x103);
         let digest = DIGEST.to_vec();
         let signature = SIGNATURE.to_vec();
         let certificate = CERTIFICATE.to_vec();
@@ -256,20 +256,20 @@ mod test {
         // see test_certificate.rs for more info
 
         let mut signed_data = SignedData::new(
-            Digests::new(vec![Digest::new(signature_algorithm_id, digest.clone())]),
+            Digests::new(vec![Digest::new(
+                signature_algorithm_id.clone(),
+                digest.clone(),
+            )]),
             Certificates::new(vec![Certificate::new(certificate)]),
             AdditionalAttributes::new(vec![]),
         );
         signed_data.size += 4;
 
-        let content =
-            ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2::new(Signers::new(vec![
-                Signer::new(
-                    signed_data,
-                    Signatures::new(vec![Signature::new(signature_algorithm_id, signature)]),
-                    PubKey::new(pubkey),
-                ),
-            ])));
+        let content = ValueSigningBlock::new_v2(Signers::new(vec![Signer::new(
+            signed_data,
+            Signatures::new(vec![Signature::new(signature_algorithm_id, signature)]),
+            PubKey::new(pubkey),
+        )]));
         let sig = SigningBlock::new_with_padding(vec![content]).unwrap();
 
         let serialized_sig = sig.to_u8();

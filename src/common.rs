@@ -10,6 +10,7 @@ use crate::utils::MagicNumberDecoder;
 
 use crate::{
     add_space,
+    signing_block::algorithms::Algorithms,
     utils::{print_hexe, print_string, MyReader},
 };
 
@@ -21,7 +22,7 @@ pub struct Digest {
     pub size: usize,
 
     /// The signature algorithm ID of the digest.
-    pub signature_algorithm_id: u32,
+    pub signature_algorithm_id: Algorithms,
 
     /// The digest of the signed data.
     pub digest: Vec<u8>,
@@ -29,7 +30,7 @@ pub struct Digest {
 
 impl Digest {
     /// Creates a new `Digest` with the given signature algorithm ID and digest.
-    pub fn new(signature_algorithm_id: u32, digest: Vec<u8>) -> Self {
+    pub fn new(signature_algorithm_id: Algorithms, digest: Vec<u8>) -> Self {
         // size is len(signature_algorithm_id) + len(len(digest)) + len(digest)
         let size = mem::size_of::<u32>() + mem::size_of::<u32>() + digest.len();
         Self {
@@ -47,12 +48,13 @@ impl Digest {
         #[cfg(feature = "directprint")]
         print_string!("digest_size: {}", size);
         let signature_algorithm_id = data.read_u32()?;
+        let algo = Algorithms::from(signature_algorithm_id);
         add_space!(20);
         #[cfg(feature = "directprint")]
         print_string!(
             "signature_algorithm_id: {} {}",
             signature_algorithm_id,
-            MagicNumberDecoder(signature_algorithm_id)
+            algo
         );
         let digest_size = data.read_size()?;
         add_space!(20);
@@ -64,14 +66,14 @@ impl Digest {
         print_hexe("digest", &digest);
         Ok(Self {
             size,
-            signature_algorithm_id,
+            signature_algorithm_id: algo,
             digest,
         })
     }
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = [
-            self.signature_algorithm_id.to_le_bytes()[..].to_vec(),
+            u32::from(&self.signature_algorithm_id).to_le_bytes()[..].to_vec(),
             (self.digest.len() as u32).to_le_bytes()[..].to_vec(),
             self.digest.to_vec(),
         ]
@@ -382,14 +384,14 @@ pub struct Signature {
     /// The size of the signature.
     pub size: usize,
     /// The signature algorithm ID of the signature.
-    pub signature_algorithm_id: u32,
+    pub signature_algorithm_id: Algorithms,
     /// The signature of the signer.
     pub signature: Vec<u8>,
 }
 
 impl Signature {
     /// Creates a new `Signature` with the given signature algorithm ID and signature.
-    pub fn new(signature_algorithm_id: u32, signature: Vec<u8>) -> Self {
+    pub fn new(signature_algorithm_id: Algorithms, signature: Vec<u8>) -> Self {
         // size is len(signature_algorithm_id) + len(len(signature)) + len(signature)
         let size = mem::size_of::<u32>() + mem::size_of::<u32>() + signature.len();
         Self {
@@ -407,11 +409,12 @@ impl Signature {
         add_space!(12);
         print_string!("signature_size: {}", size);
         let signature_algorithm_id = data.read_u32()?;
+        let algo = Algorithms::from(signature_algorithm_id);
         add_space!(12);
         print_string!(
             "signature_algorithm_id: {} {}",
             signature_algorithm_id,
-            MagicNumberDecoder(signature_algorithm_id)
+            algo
         );
         let signature_size = data.read_size()?;
         add_space!(12);
@@ -421,7 +424,7 @@ impl Signature {
         print_hexe("signature", &signature);
         Ok(Self {
             size,
-            signature_algorithm_id,
+            signature_algorithm_id: algo,
             signature,
         })
     }
@@ -429,7 +432,7 @@ impl Signature {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = [
-            self.signature_algorithm_id.to_le_bytes()[..].to_vec(),
+            (u32::from(&self.signature_algorithm_id)).to_le_bytes()[..].to_vec(),
             (self.signature.len() as u32).to_le_bytes()[..].to_vec(),
             self.signature.to_vec(),
         ]
@@ -531,7 +534,7 @@ impl AdditionalAttribute {
         print_string!("tiny_raw_data_size: {}", size);
         let id = data.read_u32()?;
         add_space!(20);
-        print_string!("id: {} {}", id, MagicNumberDecoder(id));
+        print_string!("id: {} {}", id, MagicNumberDecoder::Normal(id));
         let data_size = match size.checked_sub(4) {
             Some(size) => size,
             None => return Err("Invalid size".to_string()),

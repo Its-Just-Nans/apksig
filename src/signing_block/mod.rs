@@ -9,6 +9,8 @@ use std::mem;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+pub mod algorithms;
+pub mod digest;
 pub mod scheme_v2;
 pub mod scheme_v3;
 
@@ -17,10 +19,8 @@ use crate::utils::MagicNumberDecoder;
 
 use crate::utils::print_string;
 use crate::utils::{add_space, MyReader};
-use scheme_v2::SignatureSchemeV2;
-use scheme_v2::SIGNATURE_SCHEME_V2_BLOCK_ID;
-use scheme_v3::SignatureSchemeV3;
-use scheme_v3::SIGNATURE_SCHEME_V3_BLOCK_ID;
+use scheme_v2::{SignatureSchemeV2, Signers as SignersV2, SIGNATURE_SCHEME_V2_BLOCK_ID};
+use scheme_v3::{SignatureSchemeV3, Signers as SignersV3, SIGNATURE_SCHEME_V3_BLOCK_ID};
 
 /// Magic number of the APK Signing Block
 pub const MAGIC: &[u8; 16] = b"APK Sig Block 42";
@@ -82,6 +82,16 @@ pub enum ValueSigningBlock {
 }
 
 impl ValueSigningBlock {
+    /// Create a new ValueSigningBlock::SignatureSchemeV2Block
+    pub fn new_v2(signers: SignersV2) -> Self {
+        ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2::new(signers))
+    }
+
+    /// Create a new ValueSigningBlock::SignatureSchemeV3Block
+    pub fn new_v3(signers: SignersV3) -> Self {
+        ValueSigningBlock::SignatureSchemeV3Block(SignatureSchemeV3::new(signers))
+    }
+
     /// ID of the value
     pub fn id(&self) -> u32 {
         match self {
@@ -114,7 +124,11 @@ impl ValueSigningBlock {
         print_string!("Pair size: {} bytes", pair_size);
 
         let pair_id = data.read_u32()?;
-        print_string!("Pair ID: {} {}", pair_id, MagicNumberDecoder(pair_id));
+        print_string!(
+            "Pair ID: {} {}",
+            pair_id,
+            MagicNumberDecoder::Normal(pair_id)
+        );
 
         let value_length = match pair_size.checked_sub(4) {
             Some(v) => v,

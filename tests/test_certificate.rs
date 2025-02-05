@@ -44,13 +44,14 @@ mod test {
                 Signature, Signatures,
             },
             scheme_v2::{SignedData, Signer, Signers},
-            SignatureSchemeV2, SigningBlock, ValueSigningBlock,
+            signing_block::algorithms::Algorithms,
+            SigningBlock, ValueSigningBlock,
         };
         use x509_parser::prelude::{FromDer, X509Certificate};
 
         // value needed to create the signing block
         let cert = CERTIFICATE.to_vec();
-        let signature_algorithm_id = 0x103;
+        let signature_algorithm_id = Algorithms::from(0x103);
         let digest = DIGEST.to_vec();
         let signature = SIGNATURE.to_vec();
 
@@ -61,20 +62,20 @@ mod test {
 
         // start block creation
         let mut signed_data = SignedData::new(
-            Digests::new(vec![Digest::new(signature_algorithm_id, digest.clone())]),
+            Digests::new(vec![Digest::new(
+                signature_algorithm_id.clone(),
+                digest.clone(),
+            )]),
             Certificates::new(vec![certificate]),
             AdditionalAttributes::new(vec![]),
         );
         signed_data.size += 4;
 
-        let content =
-            ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2::new(Signers::new(vec![
-                Signer::new(
-                    signed_data,
-                    Signatures::new(vec![Signature::new(signature_algorithm_id, signature)]),
-                    PubKey::new(pubkey),
-                ),
-            ])));
+        let content = ValueSigningBlock::new_v2(Signers::new(vec![Signer::new(
+            signed_data,
+            Signatures::new(vec![Signature::new(signature_algorithm_id, signature)]),
+            PubKey::new(pubkey),
+        )]));
 
         let sig = SigningBlock::new_with_padding(vec![content]).unwrap();
 

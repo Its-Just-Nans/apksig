@@ -6,9 +6,7 @@ use std::mem;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "directprint")]
-use crate::utils::MagicNumberDecoder;
-
+use crate::signing_block::algorithms::Algorithms;
 use crate::utils::{add_space, print_hexe, print_string};
 
 use crate::{
@@ -260,7 +258,7 @@ pub struct SignedDataLevels {
     pub certificate: Vec<u8>,
 
     /// The signature algorithm ID of the signed data levels.
-    pub signature_algorithm_id: u32,
+    pub signature_algorithm_id: Algorithms,
 }
 
 impl SignatureSchemeV3 {
@@ -305,11 +303,12 @@ impl SignatureSchemeV3 {
             add_space!(8);
             print_hexe("certificate", &certificate);
             let signature_algorithm_id = data.read_u32()?;
+            let algo = Algorithms::from(signature_algorithm_id);
             add_space!(8);
             print_string!(
                 "signature_algorithm_id: {} {}",
                 signature_algorithm_id,
-                MagicNumberDecoder(signature_algorithm_id)
+                algo
             );
             let flags = data.read_u32()?;
             add_space!(8);
@@ -324,7 +323,7 @@ impl SignatureSchemeV3 {
                 size: level_size,
                 level: SignedDataLevels {
                     certificate,
-                    signature_algorithm_id,
+                    signature_algorithm_id: algo,
                 },
                 flags,
                 signature_algorithm_id,
