@@ -1,6 +1,6 @@
 #![recursion_limit = "1024"]
 
-use apksig::{Algorithms, SigningBlock};
+use apksig::{utils::MagicNumberDecoder, Algorithms, SigningBlock};
 use console_error_panic_hook::set_once as set_panic_hook;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -181,10 +181,14 @@ fn generate_recursive_html(json: &Value, key: Option<String>) -> String {
         }
         Value::String(s) => format!("<span>{}</span>", s.clone()),
         Value::Number(n) => match key {
-            Some(k) if !k.contains("size") && !k.starts_with("file_") => {
+            Some(k) if k == "id" && k == "signature_algorithm_id" => {
                 let formatted = match n.as_u64() {
                     Some(n_num) => {
-                        format!("{} {}", n_num, Algorithms::from(n_num as u32))
+                        if k == "signature_algorithm_id" {
+                            format!("{} {}", n_num, Algorithms::from(n_num as u32))
+                        } else {
+                            format!("{} {}", n_num, MagicNumberDecoder::Normal(n_num as u32))
+                        }
                     }
                     None => n.to_string(),
                 };
