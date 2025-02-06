@@ -96,10 +96,18 @@ pub fn digest_end_of_central_directory<R: Read + Seek>(
     let mut eocd_buff = Vec::with_capacity(eocd_size);
     file.read_to_end(&mut eocd_buff)?;
     // little manipulation to change the offset of the central directory offset
+    let first_part = match eocd_buff.get(..16) {
+        Some(data) => data,
+        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+    };
+    let second_part = match eocd_buff.get(20..) {
+        Some(data) => data,
+        None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+    };
     let eocd_buff = [
-        eocd_buff[..16].to_vec(),
+        first_part.to_vec(),
         (central_directory_offset as u32).to_le_bytes().to_vec(),
-        eocd_buff[20..].to_vec(),
+        second_part.to_vec(),
     ]
     .concat();
     let reader = std::io::Cursor::new(eocd_buff);
@@ -271,30 +279,66 @@ pub fn find_eocd<R: Read + Seek>(
             apk.seek(SeekFrom::End(idx))?;
             let mut buff_block: Vec<u8> = vec![0; i];
             apk.read_exact(&mut buff_block)?;
+            let disk_number = match buff_block.get(0..2) {
+                Some(data) => u16::from_le_bytes(create_fixed_buffer_2(data)),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
+            let disk_with_cd = match buff_block.get(2..4) {
+                Some(data) => u16::from_le_bytes(create_fixed_buffer_2(data)),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
+            let num_entries = match buff_block.get(4..6) {
+                Some(data) => u16::from_le_bytes(create_fixed_buffer_2(data)),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
+            let total_entries = match buff_block.get(6..8) {
+                Some(data) => u16::from_le_bytes(create_fixed_buffer_2(data)),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
+            let cd_size = match buff_block.get(8..12) {
+                Some(data) => u32::from_le_bytes(create_fixed_buffer_4(data)),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
+            let cd_offset = match buff_block.get(12..16) {
+                Some(data) => u32::from_le_bytes(create_fixed_buffer_4(data)),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
+            let comment_len = match buff_block.get(16..18) {
+                Some(data) => u16::from_le_bytes(create_fixed_buffer_2(data)),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
+            let comment = match buff_block.get(18..) {
+                Some(data) => data.to_vec(),
+                None => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid EOCD")),
+            };
             let eocd = EndOfCentralDirectoryRecord {
                 file_offset: file_len - i,
                 signature: buf,
-                disk_number: u16::from_le_bytes([buff_block[0], buff_block[1]]),
-                disk_with_cd: u16::from_le_bytes([buff_block[2], buff_block[3]]),
-                num_entries: u16::from_le_bytes([buff_block[4], buff_block[5]]),
-                total_entries: u16::from_le_bytes([buff_block[6], buff_block[7]]),
-                cd_size: u32::from_le_bytes([
-                    buff_block[8],
-                    buff_block[9],
-                    buff_block[10],
-                    buff_block[11],
-                ]),
-                cd_offset: u32::from_le_bytes([
-                    buff_block[12],
-                    buff_block[13],
-                    buff_block[14],
-                    buff_block[15],
-                ]),
-                comment_len: u16::from_le_bytes([buff_block[16], buff_block[17]]),
-                comment: buff_block[18..].to_vec(),
+                disk_number,
+                disk_with_cd,
+                num_entries,
+                total_entries,
+                cd_size,
+                cd_offset,
+                comment_len,
+                comment,
             };
             return Ok(eocd);
         }
     }
     Err(io::Error::new(io::ErrorKind::NotFound, "EOCD not found"))
+}
+
+/// Create a fixed buffer of 4 bytes
+pub(crate) fn create_fixed_buffer_4(buf: &[u8]) -> [u8; 4] {
+    let mut buffer = [0; 4];
+    buffer.copy_from_slice(buf);
+    buffer
+}
+
+/// Create a fixed buffer of 2 bytes
+pub(crate) fn create_fixed_buffer_2(buf: &[u8]) -> [u8; 2] {
+    let mut buffer = [0; 2];
+    buffer.copy_from_slice(buf);
+    buffer
 }

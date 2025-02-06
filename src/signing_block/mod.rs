@@ -14,6 +14,7 @@ pub mod digest;
 pub mod scheme_v2;
 pub mod scheme_v3;
 
+use crate::utils::create_fixed_buffer_8;
 #[cfg(feature = "directprint")]
 use crate::utils::MagicNumberDecoder;
 
@@ -341,7 +342,16 @@ impl SigningBlock {
                 SIZE_UINT64 + SIZE_UINT64 + MAGIC_LEN
             ));
         }
-        let magic = data[data.len() - MAGIC_LEN..data.len()].to_vec();
+        let magic = match data.get(data.len() - MAGIC_LEN..data.len()) {
+            Some(v) => v,
+            None => {
+                return Err(format!(
+                    "Error: data length {} is less than {} (size of magic number)",
+                    data.len(),
+                    MAGIC_LEN
+                ));
+            }
+        };
         if magic != MAGIC {
             return Err(format!(
                 "parse_full_block(): Magic not found\nMAGIC is '{:?}' (as [u8]) or '{}' (as string)",
@@ -349,21 +359,29 @@ impl SigningBlock {
                 String::from_utf8_lossy(MAGIC)
             ));
         }
-        let start_block_size = u64::from_le_bytes([
-            data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7],
-        ]) as usize;
+        let start_block_size = match data.get(..8) {
+            Some(v) => v,
+            None => {
+                return Err(format!(
+                    "Error: data length {} is less than {} (size of u64)",
+                    data.len(),
+                    SIZE_UINT64
+                ));
+            }
+        };
+        let start_block_size = u64::from_le_bytes(create_fixed_buffer_8(start_block_size)) as usize;
         let end_size =
-            data[(data.len() - MAGIC_LEN - SIZE_UINT64)..data.len() - MAGIC_LEN].to_vec();
-        let end_block_size = u64::from_le_bytes([
-            end_size[0],
-            end_size[1],
-            end_size[2],
-            end_size[3],
-            end_size[4],
-            end_size[5],
-            end_size[6],
-            end_size[7],
-        ]) as usize;
+            match data.get((data.len() - MAGIC_LEN - SIZE_UINT64)..data.len() - MAGIC_LEN) {
+                Some(v) => v,
+                None => {
+                    return Err(format!(
+                        "Error: data length {} is less than {} (size of u64)",
+                        data.len(),
+                        SIZE_UINT64
+                    ));
+                }
+            };
+        let end_block_size = u64::from_le_bytes(create_fixed_buffer_8(end_size)) as usize;
         debug_assert_eq!(start_block_size, end_block_size);
         if start_block_size != end_block_size {
             return Err(format!(
@@ -372,9 +390,17 @@ impl SigningBlock {
             ));
         }
         let content_size = end_block_size - SIZE_UINT64 - MAGIC_LEN;
-        let content = match SigningBlock::extract_values(&mut MyReader::new(
-            &data[8..data.len() - MAGIC_LEN - SIZE_UINT64],
-        )) {
+        let inner_content = match data.get(8..data.len() - MAGIC_LEN - SIZE_UINT64) {
+            Some(v) => v,
+            None => {
+                return Err(format!(
+                    "Error: data length {} is less than {} (size of u64)",
+                    data.len(),
+                    SIZE_UINT64
+                ));
+            }
+        };
+        let content = match SigningBlock::extract_values(&mut MyReader::new(inner_content)) {
             Ok(v) => v,
             Err(e) => {
                 return Err(format!("Error extracting values: {}", e));
@@ -405,17 +431,26 @@ impl SigningBlock {
         for idx in MAGIC_LEN..data.len() {
             let start_magic = data.len() - idx;
             let end_magic = start_magic + MAGIC_LEN;
-            if &data[start_magic..end_magic] == MAGIC {
-                let size = u64::from_le_bytes([
-                    data[start_magic - SIZE_UINT64],
-                    data[start_magic - SIZE_UINT64 + 1],
-                    data[start_magic - SIZE_UINT64 + 2],
-                    data[start_magic - SIZE_UINT64 + 3],
-                    data[start_magic - SIZE_UINT64 + 4],
-                    data[start_magic - SIZE_UINT64 + 5],
-                    data[start_magic - SIZE_UINT64 + 6],
-                    data[start_magic - SIZE_UINT64 + 7],
-                ]) as usize;
+            let magic = match data.get(start_magic..end_magic) {
+                Some(v) => v,
+                None => {
+                    return Err(format!(
+                        "Error: start_magic {} is less than {} (size of magic number)",
+                        start_magic, MAGIC_LEN
+                    ));
+                }
+            };
+            if magic == MAGIC {
+                let size_part = match data.get(start_magic - SIZE_UINT64..start_magic) {
+                    Some(v) => v,
+                    None => {
+                        return Err(format!(
+                            "Error: start_magic {} is less than {} (size of u64)",
+                            start_magic, SIZE_UINT64
+                        ));
+                    }
+                };
+                let size = u64::from_le_bytes(create_fixed_buffer_8(size_part)) as usize;
                 let start_full_block = match start_magic.checked_sub(size - MAGIC_LEN + SIZE_UINT64)
                 {
                     Some(v) => v,
@@ -426,7 +461,16 @@ impl SigningBlock {
                         ));
                     }
                 };
-                let sig = Self::parse_full_block(&data[start_full_block..end_magic])?;
+                let full_block = match data.get(start_full_block..end_magic) {
+                    Some(v) => v,
+                    None => {
+                        return Err(format!(
+                            "Error: start_magic {} is less than {} (size of u64)",
+                            start_magic, SIZE_UINT64
+                        ));
+                    }
+                };
+                let sig = Self::parse_full_block(full_block)?;
                 return Ok(sig);
             }
         }

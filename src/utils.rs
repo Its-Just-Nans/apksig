@@ -35,7 +35,14 @@ use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
 pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {
     if cfg!(feature = "directprint") {
         if data.len() > 20 {
-            print_string!("{}: {}..", type_name, to_hexe(&data[..20]));
+            match data.get(..20) {
+                Some(_data) => {
+                    print_string!("{}: {}..", type_name, to_hexe(_data));
+                }
+                None => {
+                    print_string!("{}: {}..", type_name, to_hexe(data));
+                }
+            }
         } else {
             print_string!("{}: {}", type_name, to_hexe(data));
         }
@@ -169,7 +176,11 @@ impl MyReader {
     /// Returns a string if the parsing fails.
     pub(crate) fn read_u32(&mut self) -> Result<u32, String> {
         let buf = match self.data.get(self.pos..self.pos + 4) {
-            Some(buf) => buf,
+            Some(buf) => {
+                let mut buffer = [0; 4];
+                buffer.copy_from_slice(buf);
+                buffer
+            }
             None => {
                 if cfg!(feature = "traceback") {
                     return Err(format!(
@@ -190,7 +201,11 @@ impl MyReader {
     /// Returns a string if the parsing fails.
     pub(crate) fn read_u64(&mut self) -> Result<u64, String> {
         let buf = match self.data.get(self.pos..self.pos + 8) {
-            Some(buf) => buf,
+            Some(buf) => {
+                let mut buffer = [0; 8];
+                buffer.copy_from_slice(buf);
+                buffer
+            }
             None => {
                 if cfg!(feature = "traceback") {
                     return Err(format!(
@@ -215,4 +230,11 @@ impl MyReader {
         let temp = self.read_u64()?;
         Ok(temp as usize)
     }
+}
+
+/// Create a fixed buffer of 8 bytes
+pub(crate) fn create_fixed_buffer_8(buf: &[u8]) -> [u8; 8] {
+    let mut buffer = [0; 8];
+    buffer.copy_from_slice(buf);
+    buffer
 }
