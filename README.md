@@ -1,4 +1,4 @@
-# apksig [![crates.io version](https://img.shields.io/crates/v/apksig)](https://crates.io/crates/apksig) ![crates.io downloads](https://img.shields.io/crates/d/apksig)
+# apksig [![crates.io version](https://img.shields.io/crates/v/apksig)](https://crates.io/crates/apksig) ![crates.io downloads](https://img.shields.io/crates/d/apksig) [![docs.rs](https://img.shields.io/docsrs/apksig)](https://crates.io/crates/apksig)
 
 - <https://docs.rs/apksig> - documentation
 - <https://n4n5.dev/apksig/> - online demo
@@ -8,12 +8,11 @@
 
 ## Usage
 
-For rust usage, see [./tests](./tests) for examples.
+For rust usage, see <https://docs.rs/apksig> or [./tests](./tests) for examples.
 
 ```sh
 cargo install apksig
-
-
+# then use with
 apksig myapp.apk
 ```
 
@@ -29,3 +28,7 @@ apksig = { version = "0.1", default-features = false, features = ["serde", "hash
 ```
 
 See [./Cargo.toml](./Cargo.toml) for all available features and documentation.
+
+## LICENSE
+
+- [MIT](./LICENSE)
