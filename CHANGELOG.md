@@ -17,3 +17,27 @@
 
 - change function from `&mut File` to `<R: Read + Seek>` for more flexibility (use a `Cursor` for `Vec<u8>`)
 - add a test to digest a raw apk (without the APK Signing block)
+
+## `0.2.6`
+
+- fix the lib of `0.2.5` <https://github.com/Its-Just-Nans/apksig/commit/214d0df27b66128a92d3cffbb854492b299d1d0c>
+
+## `0.2.5`
+
+- yanked because does not compile because of feature conflict
+
+## `0.2.4`
+
+- forgor to publish (again - rip)
+
+## `0.2.3`
+
+- yanked because contains a git (sub) repository and apk
+
+## `0.2.2`
+
+- yanked because contains a git (sub) repository and apk
+
+## `0.2.1`
+
+- forgor to publish
