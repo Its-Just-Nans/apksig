@@ -51,7 +51,7 @@ const BLOCK: [u8; 4096] = [
     32, 102, 24, 191, 140, 45, 117, 245, 167, 76, 122, 12, 250, 139, 93, 239, 100, 51, 6, 138, 91,
     100, 228, // end of certificates
     0, 0, 0, 0, // length of the additional attributes
-    0, 0, 0, 0, // padding ??
+    0, 0, 0, 0, // padding - see the docs of SignedData for more infos
     12, 1, 0, 0, // length of the signatures - 268
     8, 1, 0, 0, // length of the signature block - 264
     3, 1, 0, 0, // sginature algorithm id - 259

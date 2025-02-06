@@ -183,7 +183,7 @@ mod test {
                     signers_data: vec![Signer {
                         size: 1302,
                         signed_data: SignedData {
-                            size: 728,
+                            size: 728, // 724 + 4 bytes padding
                             digests: Digests {
                                 size: 44,
                                 digests_data: vec![Digest {
@@ -203,6 +203,9 @@ mod test {
                                 size: 0,
                                 additional_attributes_data: vec![],
                             },
+                            // see docs for more info
+                            // the new method SignedData::new() is recommended
+                            _private_auto_padding_fix: true,
                         },
                         signatures: Signatures {
                             size: 268,
@@ -255,7 +258,7 @@ mod test {
         // technically you can extract the pubkey from the certificate
         // see test_certificate.rs for more info
 
-        let mut signed_data = SignedData::new(
+        let signed_data = SignedData::new(
             Digests::new(vec![Digest::new(
                 signature_algorithm_id.clone(),
                 digest.clone(),
@@ -263,7 +266,6 @@ mod test {
             Certificates::new(vec![Certificate::new(certificate)]),
             AdditionalAttributes::new(vec![]),
         );
-        signed_data.size += 4;
 
         let content = ValueSigningBlock::new_v2(Signers::new(vec![Signer::new(
             signed_data,

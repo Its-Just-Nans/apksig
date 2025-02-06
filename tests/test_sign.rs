@@ -14,12 +14,11 @@ mod test {
         let digest = DIGEST.to_vec();
         let certificate = CERTIFICATE.to_vec();
 
-        let mut signed_data = SignedData::new(
+        let signed_data = SignedData::new(
             Digests::new(vec![Digest::new(algorithm.clone(), digest.clone())]),
             Certificates::new(vec![Certificate::new(certificate)]),
             AdditionalAttributes::new(vec![]),
         );
-        signed_data.size += 4;
 
         let data = &signed_data.to_u8()[4..];
 

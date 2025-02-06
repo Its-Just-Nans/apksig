@@ -177,6 +177,18 @@ pub struct SignedData {
 
     /// The additional attributes of the signed data.
     pub additional_attributes: AdditionalAttributes,
+
+    /// auto fix the 4 bytes padding at the end of signed data - Always initialized to true
+    ///
+    ///  If true auto add 4 to the [`SignedData::size`] attribute when using new
+    ///
+    /// This size will create a tiny 4 bytes padding when using [`SignedData::to_u8`] method
+    ///
+    /// This attribute is still in public to allow the user to create a custom SignedData
+    /// but it is not recommended to change it manually - use at your own risk
+    ///
+    /// Bug from apksigner tool - Thanks @obfusk
+    pub _private_auto_padding_fix: bool,
 }
 
 impl SignedData {
@@ -186,17 +198,20 @@ impl SignedData {
         certificates: Certificates,
         additional_attributes: AdditionalAttributes,
     ) -> Self {
+        let auto_padding_fix = true;
         let size = mem::size_of::<u32>()
             + digests.size
             + mem::size_of::<u32>()
             + certificates.size
             + mem::size_of::<u32>()
             + additional_attributes.size;
+        let size = if auto_padding_fix { size + 4 } else { size };
         Self {
             size,
             digests,
             certificates,
             additional_attributes,
+            _private_auto_padding_fix: auto_padding_fix,
         }
     }
 
@@ -216,6 +231,7 @@ impl SignedData {
             digests,
             certificates,
             additional_attributes,
+            _private_auto_padding_fix: true,
         })
     }
 

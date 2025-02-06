@@ -61,7 +61,7 @@ mod test {
         let pubkey = cert.1.public_key().raw.to_vec();
 
         // start block creation
-        let mut signed_data = SignedData::new(
+        let signed_data = SignedData::new(
             Digests::new(vec![Digest::new(
                 signature_algorithm_id.clone(),
                 digest.clone(),
@@ -69,7 +69,6 @@ mod test {
             Certificates::new(vec![certificate]),
             AdditionalAttributes::new(vec![]),
         );
-        signed_data.size += 4;
 
         let content = ValueSigningBlock::new_v2(Signers::new(vec![Signer::new(
             signed_data,
