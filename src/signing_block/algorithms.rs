@@ -155,4 +155,56 @@ impl Algorithms {
             Self::Unknown(_) => Vec::new(),
         }
     }
+
+    /// Verify signature
+    /// # Arguments
+    /// * `pubkey` - Public key from the signing block
+    /// * `raw_data` - Raw data from the signed_data (without the 4 bytes of size) of the signing block
+    /// * `signature` - Signature from the signing block
+    /// # Errors
+    /// Returns an error if the signature is invalid
+    #[cfg(feature = "signing")]
+    pub fn verify(&self, pubkey: &[u8], raw_data: &[u8], signature: &[u8]) -> Result<(), String> {
+        use rsa::pkcs8::DecodePublicKey;
+        use rsa::sha2::{Sha256, Sha512};
+        use rsa::{Pkcs1v15Sign, RsaPublicKey};
+        let key = match RsaPublicKey::from_public_key_der(pubkey) {
+            Ok(key) => key,
+            Err(_) => return Err("Invalid public key".to_string()),
+        };
+        let data = self.hash(raw_data);
+        match &self {
+            Self::RSASSA_PKCS1_v1_5_256 => {
+                let pkcs = Pkcs1v15Sign::new::<Sha256>();
+                match key.verify(pkcs, &data, signature) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err("Invalid signature".to_string()),
+                }
+            }
+            Self::RSASSA_PKCS1_v1_5_512 => {
+                let pkcs = Pkcs1v15Sign::new::<Sha512>();
+                match key.verify(pkcs, &data, signature) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err("Invalid signature".to_string()),
+                }
+            }
+            Self::RSASSA_PSS_256 => {
+                let pkcs = rsa::pss::Pss::new::<Sha256>();
+                match key.verify(pkcs, &data, signature) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err("Invalid signature".to_string()),
+                }
+            }
+            Self::RSASSA_PSS_512 => {
+                let pkcs = rsa::pss::Pss::new::<Sha512>();
+                match key.verify(pkcs, &data, signature) {
+                    Ok(_) => Ok(()),
+                    Err(_) => Err("Invalid signature".to_string()),
+                }
+            }
+            _ => {
+                unimplemented!()
+            }
+        }
+    }
 }

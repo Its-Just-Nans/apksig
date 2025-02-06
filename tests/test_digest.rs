@@ -23,14 +23,14 @@ mod test {
         // find the eocd of file
         let eocd = find_eocd(&mut file, file_len).unwrap();
         let algo = Algorithms::RSASSA_PKCS1_v1_5_256;
-        let offsets = FileOffsets {
-            start_content: 0,
-            stop_content: sig.file_offset_start,
-            start_cd: sig.file_offset_end,
-            stop_cd: eocd.file_offset,
-            start_eocd: eocd.file_offset,
-            stop_eocd: file_len,
-        };
+
+        // see docs of FileOffsets for more details
+        let offsets = FileOffsets::new(
+            sig.file_offset_start,
+            sig.file_offset_end,
+            eocd.file_offset,
+            file_len,
+        );
         let digest = digest_apk(&mut file, &offsets, &algo).unwrap();
         assert_eq!(digest.len(), 32);
         assert_eq!(digest, DIGEST[..]);
@@ -79,14 +79,7 @@ mod test {
         let eocd = find_eocd(&mut cursor, file_len).unwrap();
 
         // see docs of FileOffsets for more details
-        let offsets = FileOffsets {
-            start_content: 0,
-            stop_content: start_sig,
-            start_cd: start_sig,
-            stop_cd: eocd.file_offset,
-            start_eocd: eocd.file_offset,
-            stop_eocd: file_len,
-        };
+        let offsets = FileOffsets::without_signature(start_sig, eocd.file_offset, file_len);
 
         let algo = Algorithms::RSASSA_PKCS1_v1_5_256;
         let digest = digest_apk(&mut cursor, &offsets, &algo).unwrap();

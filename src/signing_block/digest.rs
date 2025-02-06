@@ -154,6 +154,26 @@ pub struct FileOffsets {
     pub stop_eocd: usize,
 }
 
+impl FileOffsets {
+    /// Create a new instance of `FileOffsets`
+    pub fn new(stop_content: usize, start_cd: usize, stop_cd: usize, stop_eocd: usize) -> Self {
+        Self {
+            start_content: 0,
+            stop_content,
+            start_cd,
+            stop_cd,
+            start_eocd: stop_cd,
+            stop_eocd,
+        }
+    }
+
+    /// Create a new instance of `FileOffsets`
+    /// With only 3 arguments, the signature is not included
+    pub fn without_signature(stop_content: usize, stop_cd: usize, stop_eocd: usize) -> Self {
+        Self::new(stop_content, stop_content, stop_cd, stop_eocd)
+    }
+}
+
 /// Digest the APK file
 /// # Errors
 /// Returns an error if the file cannot be read
