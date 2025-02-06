@@ -35,13 +35,8 @@ use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
 pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {
     if cfg!(feature = "directprint") {
         if data.len() > 20 {
-            match data.get(..20) {
-                Some(_data) => {
-                    print_string!("{}: {}..", type_name, to_hexe(_data));
-                }
-                None => {
-                    print_string!("{}: {}..", type_name, to_hexe(data));
-                }
+            if let Some(_data) = data.get(..20) {
+                print_string!("{}: {}..", type_name, to_hexe(_data));
             }
         } else {
             print_string!("{}: {}", type_name, to_hexe(data));
