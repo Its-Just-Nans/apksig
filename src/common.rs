@@ -261,24 +261,15 @@ impl Certificate {
     /// # Errors
     /// Returns a string if the data is not valid.
     #[cfg(feature = "certificate")]
-    pub fn get_issuer(&self) -> Result<String, String> {
+    pub fn get_issuer(&self) -> Result<(String, String), String> {
         use x509_parser::prelude::FromDer;
 
         let res = x509_parser::prelude::X509Certificate::from_der(&self.certificate);
         match res {
             Ok((_rem, cert)) => {
-                let name = match cert.tbs_certificate.issuer().iter_common_name().next() {
-                    Some(name_attribute) => match name_attribute.as_str() {
-                        Ok(name) => Some(name.to_string()),
-                        _ => None,
-                    },
-                    None => None,
-                };
-
-                match name {
-                    Some(name) => Ok(name),
-                    None => Err("Issuer not found".to_string()),
-                }
+                let issuer = cert.issuer.to_string();
+                let subject = cert.subject.to_string();
+                Ok((issuer, subject))
             }
             _ => Err("x509 parsing failed".to_string()),
         }

@@ -10,11 +10,12 @@ mod test {
         use std::fmt::Write;
         let certificate = Certificate::new(CERTIFICATE.to_vec());
 
-        let issuer = certificate.get_issuer().unwrap();
+        let (issuer, subject) = certificate.get_issuer().unwrap();
+        assert_eq!(issuer, "CN=n4n5");
+        assert_eq!(subject, "CN=n4n5");
         let sha256 = certificate.sha256_cert();
         let md5 = certificate.md5_cert();
         let sha1 = certificate.sha1_cert();
-        assert_eq!(issuer, "n4n5");
         let sha256_hex = sha256.iter().fold(String::new(), |mut out, b| {
             let _ = write!(out, "{b:02x}");
             out

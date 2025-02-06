@@ -18,18 +18,22 @@
     clippy::unwrap_used,
     clippy::expect_used,
     clippy::panic,
-    clippy::indexing_slicing
+    clippy::indexing_slicing,
+    clippy::print_stdout
 )]
 #![warn(clippy::multiple_crate_versions)]
 
+pub mod apk;
 pub mod common;
 pub mod signing_block;
 pub mod utils;
+pub mod zip;
 
 // re-export
 #[cfg(feature = "hash")]
 pub use signing_block::digest::digest_apk;
 
+pub use apk::Apk;
 pub use signing_block::algorithms::Algorithms;
 pub use signing_block::scheme_v2::{SignatureSchemeV2, SIGNATURE_SCHEME_V2_BLOCK_ID};
 pub use signing_block::scheme_v3::{SignatureSchemeV3, SIGNATURE_SCHEME_V3_BLOCK_ID};

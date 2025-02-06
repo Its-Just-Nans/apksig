@@ -179,7 +179,7 @@ impl ValueSigningBlock {
 }
 
 /// APK Signing Block
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SigningBlock {
     /// Offset of the start of the block in the file
@@ -509,5 +509,11 @@ impl SigningBlock {
             self.magic.to_vec(),
         ]
         .concat()
+    }
+
+    /// Tiny shortcut to get the full size of the block
+    pub fn get_full_size(&self) -> usize {
+        // size of the block + size of u64 (8 bytes)
+        self.size_of_block_start + mem::size_of::<u64>()
     }
 }

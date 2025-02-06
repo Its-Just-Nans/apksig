@@ -277,15 +277,6 @@ mod test {
         let serialized_sig = sig.to_u8();
 
         for (i, original) in BLOCK.iter().enumerate() {
-            // let error = if original != &serialized_sig[i] {
-            //     format!(
-            //         "Expected {:?} but got {:?} at index {}",
-            //         original, &serialized_sig[i], i
-            //     )
-            // } else {
-            //     "".to_string()
-            // };
-            // println!("{} {} == {} - {}", i, original, &serialized_sig[i], error);
             assert_eq!(original, &serialized_sig[i]);
         }
 
