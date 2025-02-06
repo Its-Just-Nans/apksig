@@ -98,9 +98,11 @@ mod test {
         let file = file!();
         let dir = Path::new(file).parent().unwrap();
         let apk_path = dir.join("sms2call-1.0.8.apk");
-        let apk = Apk::new(apk_path).unwrap();
+
+        let apk = Apk::new(apk_path).unwrap(); // create with new()
         let algo = Algorithms::RSASSA_PKCS1_v1_5_256;
         let digest = apk.digest(&algo).unwrap();
+
         assert_eq!(digest.len(), 32);
         assert_eq!(digest, DIGEST[..]);
     }
@@ -111,9 +113,11 @@ mod test {
         let file = file!();
         let dir = Path::new(file).parent().unwrap();
         let apk_path = dir.join("sms2call-1.0.8_no_sig.apk");
-        let apk = Apk::new_raw(apk_path).unwrap();
+
+        let apk = Apk::new_raw(apk_path).unwrap(); // create with new_raw()
         let algo = Algorithms::RSASSA_PKCS1_v1_5_256;
         let digest = apk.digest(&algo).unwrap();
+
         assert_eq!(digest.len(), 32);
         assert_eq!(digest, DIGEST[..]);
     }
