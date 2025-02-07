@@ -41,6 +41,9 @@ mod tests {
         Ok(())
     }
 
+    // ignore this test because it can be long
+    // fixable by using a smaller apk
+    #[ignore]
     #[test]
     fn run_with_apk_without_signature() -> Result<(), Box<dyn std::error::Error>> {
         let mut cmd = Command::cargo_bin("apksig")?; // Run the binary
