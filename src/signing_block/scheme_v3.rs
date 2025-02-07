@@ -137,10 +137,7 @@ impl Signer {
             self.pub_key.to_u8(),
         ]
         .concat();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self.size.checked_sub(content.len()).map_or_else(std::vec::Vec::new, |calculated_size| vec![0; calculated_size]);
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -209,10 +206,7 @@ impl SignedData {
             self.additional_attributes.to_u8(),
         ]
         .concat();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self.size.checked_sub(content.len()).map_or_else(std::vec::Vec::new, |calculated_size| vec![0; calculated_size]);
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -263,7 +257,7 @@ pub struct SignedDataLevels {
 
 impl SignatureSchemeV3 {
     /// Create a new signature scheme V3
-    pub fn new(signers: Signers) -> Self {
+    pub const fn new(signers: Signers) -> Self {
         let size = mem::size_of::<u32>() + signers.size;
         Self {
             size,
@@ -360,10 +354,12 @@ impl SignatureSchemeV3 {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = [self.id.to_le_bytes()[..].to_vec(), self.signers.to_u8()].concat();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u64).to_le_bytes()[..].to_vec(),
             content,

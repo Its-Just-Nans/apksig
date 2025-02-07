@@ -6,7 +6,7 @@ use std::{
 };
 
 /// End of Central Directory signature
-const EOCD_SIG: usize = 0x06054b50;
+const EOCD_SIG: usize = 0x0605_4b50;
 /// End of Central Directory signature as u8
 const EOCD_SIG_U8: [u8; 4] = (EOCD_SIG as u32).to_le_bytes();
 /// Size of the EOCD signature
@@ -126,9 +126,9 @@ pub(crate) fn create_fixed_buffer_2(buf: &[u8]) -> [u8; 2] {
 ///
 /// <https://source.android.com/docs/security/features/apksigning/v2>
 ///
-/// |       Content of ZIP entries  | APK Signing Block |   Central Directory     |    End of Central Directory   |
-/// |-------------------------------|-------------------|-------------------------|-------------------------------|
-/// | start_content -> stop_content |                   | start_cd   ->   stop_cd | start_eocd    ->    stop_eocd |
+/// |       Content of ZIP entries      | APK Signing Block |      Central Directory      |     End of Central Directory      |
+/// |-----------------------------------|-------------------|-----------------------------|-----------------------------------|
+/// | `start_content` -> `stop_content` |                   | `start_cd`   ->   `stop_cd` | `start_eocd`    ->    `stop_eocd` |
 ///
 /// Some fields are the same as the others, but they are separated for clarity:
 ///
@@ -152,7 +152,12 @@ pub struct FileOffsets {
 
 impl FileOffsets {
     /// Create a new instance of `FileOffsets`
-    pub fn new(stop_content: usize, start_cd: usize, stop_cd: usize, stop_eocd: usize) -> Self {
+    pub const fn new(
+        stop_content: usize,
+        start_cd: usize,
+        stop_cd: usize,
+        stop_eocd: usize,
+    ) -> Self {
         Self {
             start_content: 0,
             stop_content,
@@ -165,7 +170,7 @@ impl FileOffsets {
 
     /// Create a new instance of `FileOffsets`
     /// With only 3 arguments, the signature is not included
-    pub fn without_signature(stop_content: usize, stop_cd: usize, stop_eocd: usize) -> Self {
+    pub const fn without_signature(stop_content: usize, stop_cd: usize, stop_eocd: usize) -> Self {
         Self::new(stop_content, stop_content, stop_cd, stop_eocd)
     }
 }

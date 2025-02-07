@@ -19,7 +19,7 @@ pub const SIGNATURE_ECDSA_512: u32 = 0x0202;
 pub const SIGNATURE_DSA_256: u32 = 0x0301;
 
 /// Signature algorithms
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum Algorithms {
     /// RSASSA-PSS with SHA2-256 digest, SHA2-256 MGF1, 32 bytes of salt
@@ -52,12 +52,12 @@ impl Serialize for Algorithms {
 
 #[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for Algorithms {
-    fn deserialize<D>(deserializer: D) -> Result<Algorithms, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::de::Deserializer<'de>,
     {
         let sig = u32::deserialize(deserializer)?;
-        Ok(Algorithms::from(sig))
+        Ok(Self::from(sig))
     }
 }
 

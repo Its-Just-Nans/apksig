@@ -78,10 +78,12 @@ impl Digest {
             self.digest.to_vec(),
         ]
         .concat();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -138,10 +140,12 @@ impl Digests {
             .iter()
             .flat_map(|d| d.to_u8())
             .collect::<Vec<u8>>();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -179,7 +183,7 @@ impl Certificates {
     /// Returns a string if the data is not valid.
     pub fn parse(data: &mut MyReader) -> Result<Self, String> {
         let size_certificates = data.read_size()?;
-        let mut certificates = Certificates {
+        let mut certificates = Self {
             size: size_certificates,
             certificates_data: Vec::new(),
         };
@@ -201,10 +205,12 @@ impl Certificates {
             .iter()
             .flat_map(|c| c.to_u8())
             .collect::<Vec<u8>>();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -291,10 +297,12 @@ impl Certificate {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = self.certificate.to_vec();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -355,10 +363,12 @@ impl Signatures {
             .iter()
             .flat_map(|s| s.to_u8())
             .collect::<Vec<u8>>();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -428,10 +438,12 @@ impl Signature {
             self.signature.to_vec(),
         ]
         .concat();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -490,10 +502,12 @@ impl AdditionalAttributes {
             .iter()
             .flat_map(|a| a.to_u8())
             .collect::<Vec<u8>>();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -538,10 +552,12 @@ impl AdditionalAttribute {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = [self.id.to_le_bytes()[..].to_vec(), self.data.to_vec()].concat();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -586,10 +602,12 @@ impl PubKey {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = self.data.to_vec();
-        let padding = match self.size.checked_sub(content.len()) {
-            Some(calculated_size) => vec![0; calculated_size],
-            None => vec![],
-        };
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,

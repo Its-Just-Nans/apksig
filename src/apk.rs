@@ -109,7 +109,7 @@ impl Apk {
 
                         match algo.verify(pubkey, raw_data, signature) {
                             Ok(_) => {}
-                            Err(e) => return Err(e.to_string()),
+                            Err(e) => return Err(e),
                         }
                     }
                 }

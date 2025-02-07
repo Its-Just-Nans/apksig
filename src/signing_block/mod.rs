@@ -29,8 +29,14 @@ pub const MAGIC: &[u8; 16] = b"APK Sig Block 42";
 /// Length of the magic number
 pub const MAGIC_LEN: usize = MAGIC.len();
 
-/// Size of a u64
-pub const VERITY_PADDING_BLOCK_ID: u32 = 0x42726577;
+/// <https://android.googlesource.com/platform/tools/apksig/+/master/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java>
+pub const VERITY_PADDING_BLOCK_ID: u32 = 0x4272_6577;
+
+/// <https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java>
+pub const SOURCE_STAMP_BLOCK_ID: u32 = 0x6dff_800d;
+
+/// <https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java>
+pub const PROOF_OF_ROTATION_ATTR_ID: u32 = 0x9d63_03f7;
 
 /// Size of a u64
 const SIZE_UINT64: usize = mem::size_of::<u64>();
@@ -84,35 +90,35 @@ pub enum ValueSigningBlock {
 
 impl ValueSigningBlock {
     /// Create a new ValueSigningBlock::SignatureSchemeV2Block
-    pub fn new_v2(signers: SignersV2) -> Self {
-        ValueSigningBlock::SignatureSchemeV2Block(SignatureSchemeV2::new(signers))
+    pub const fn new_v2(signers: SignersV2) -> Self {
+        Self::SignatureSchemeV2Block(SignatureSchemeV2::new(signers))
     }
 
     /// Create a new ValueSigningBlock::SignatureSchemeV3Block
-    pub fn new_v3(signers: SignersV3) -> Self {
-        ValueSigningBlock::SignatureSchemeV3Block(SignatureSchemeV3::new(signers))
+    pub const fn new_v3(signers: SignersV3) -> Self {
+        Self::SignatureSchemeV3Block(SignatureSchemeV3::new(signers))
     }
 
     /// ID of the value
-    pub fn id(&self) -> u32 {
+    pub const fn id(&self) -> u32 {
         match self {
-            ValueSigningBlock::BaseSigningBlock(ref block) => block.id,
-            ValueSigningBlock::SignatureSchemeV2Block(ref scheme) => scheme.id,
-            ValueSigningBlock::SignatureSchemeV3Block(ref scheme) => scheme.id,
+            Self::BaseSigningBlock(ref block) => block.id,
+            Self::SignatureSchemeV2Block(ref scheme) => scheme.id,
+            Self::SignatureSchemeV3Block(ref scheme) => scheme.id,
         }
     }
 
     /// Size of the inner value
-    pub fn inner_size(&self) -> usize {
+    pub const fn inner_size(&self) -> usize {
         match self {
-            ValueSigningBlock::BaseSigningBlock(ref block) => block.size,
-            ValueSigningBlock::SignatureSchemeV2Block(ref scheme) => scheme.size,
-            ValueSigningBlock::SignatureSchemeV3Block(ref scheme) => scheme.size,
+            Self::BaseSigningBlock(ref block) => block.size,
+            Self::SignatureSchemeV2Block(ref scheme) => scheme.size,
+            Self::SignatureSchemeV3Block(ref scheme) => scheme.size,
         }
     }
 
     /// Size of the value
-    pub fn size(&self) -> usize {
+    pub const fn size(&self) -> usize {
         // size of the inner value + size of u64
         self.inner_size() + mem::size_of::<u64>()
     }
@@ -143,37 +149,38 @@ impl ValueSigningBlock {
         let block_value = &mut data.as_slice(value_length)?;
 
         print_string!("Pair Content:");
-        let block_to_add = match pair_id {
-            SIGNATURE_SCHEME_V2_BLOCK_ID => ValueSigningBlock::SignatureSchemeV2Block(
-                SignatureSchemeV2::parse(pair_size, pair_id, block_value)?,
-            ),
-            SIGNATURE_SCHEME_V3_BLOCK_ID => ValueSigningBlock::SignatureSchemeV3Block(
-                SignatureSchemeV3::parse(pair_size, pair_id, block_value)?,
-            ),
-            VERITY_PADDING_BLOCK_ID => {
-                add_space!(4);
-                print_string!("Padding Block of {} bytes", block_value.len());
-                ValueSigningBlock::BaseSigningBlock(RawData {
+        let block_to_add =
+            match pair_id {
+                SIGNATURE_SCHEME_V2_BLOCK_ID => Self::SignatureSchemeV2Block(
+                    SignatureSchemeV2::parse(pair_size, pair_id, block_value)?,
+                ),
+                SIGNATURE_SCHEME_V3_BLOCK_ID => Self::SignatureSchemeV3Block(
+                    SignatureSchemeV3::parse(pair_size, pair_id, block_value)?,
+                ),
+                VERITY_PADDING_BLOCK_ID => {
+                    add_space!(4);
+                    print_string!("Padding Block of {} bytes", block_value.len());
+                    Self::BaseSigningBlock(RawData {
+                        size: pair_size,
+                        id: pair_id,
+                        data: block_value.to_vec(),
+                    })
+                }
+                _ => Self::BaseSigningBlock(RawData {
                     size: pair_size,
                     id: pair_id,
                     data: block_value.to_vec(),
-                })
-            }
-            _ => ValueSigningBlock::BaseSigningBlock(RawData {
-                size: pair_size,
-                id: pair_id,
-                data: block_value.to_vec(),
-            }),
-        };
+                }),
+            };
         Ok(block_to_add)
     }
 
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         match self {
-            ValueSigningBlock::SignatureSchemeV2Block(scheme) => scheme.to_u8(),
-            ValueSigningBlock::SignatureSchemeV3Block(scheme) => scheme.to_u8(),
-            ValueSigningBlock::BaseSigningBlock(block) => block.to_u8(),
+            Self::SignatureSchemeV2Block(scheme) => scheme.to_u8(),
+            Self::SignatureSchemeV3Block(scheme) => scheme.to_u8(),
+            Self::BaseSigningBlock(block) => block.to_u8(),
         }
     }
 }
@@ -400,7 +407,7 @@ impl SigningBlock {
                 ));
             }
         };
-        let content = match SigningBlock::extract_values(&mut MyReader::new(inner_content)) {
+        let content = match Self::extract_values(&mut MyReader::new(inner_content)) {
             Ok(v) => v,
             Err(e) => {
                 return Err(format!("Error extracting values: {}", e));
@@ -512,7 +519,7 @@ impl SigningBlock {
     }
 
     /// Tiny shortcut to get the full size of the block
-    pub fn get_full_size(&self) -> usize {
+    pub const fn get_full_size(&self) -> usize {
         // size of the block + size of u64 (8 bytes)
         self.size_of_block_start + mem::size_of::<u64>()
     }

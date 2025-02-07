@@ -19,7 +19,9 @@
     clippy::expect_used,
     clippy::panic,
     clippy::indexing_slicing,
-    clippy::print_stdout
+    // clippy::arithmetic_side_effects,
+    // clippy::pedantic,
+    clippy::nursery
 )]
 #![warn(clippy::multiple_crate_versions)]
 

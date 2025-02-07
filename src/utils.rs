@@ -27,6 +27,8 @@ macro_rules! print_string {
 }
 pub(crate) use print_string;
 
+use crate::signing_block::PROOF_OF_ROTATION_ATTR_ID;
+use crate::signing_block::SOURCE_STAMP_BLOCK_ID;
 use crate::signing_block::VERITY_PADDING_BLOCK_ID;
 use crate::SIGNATURE_SCHEME_V2_BLOCK_ID;
 use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
@@ -50,13 +52,13 @@ pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {
 /// Convert a slice of bytes to a hex string
 pub(crate) fn to_hexe(data: &[u8]) -> String {
     data.iter()
-        .map(|b| format!("{:02x}", b).to_string())
+        .map(|b| format!("{:02x}", b))
         .collect::<Vec<String>>()
         .join("")
 }
 
 /// Magic number decoder
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum MagicNumberDecoder {
     /// Normal u32
     Normal(u32),
@@ -68,12 +70,9 @@ impl std::fmt::Display for MagicNumberDecoder {
         let str = match self {
             // Self::Algorithms(algo) => &algo.to_string(),
             Self::Normal(num) => match *num {
-                // https://android.googlesource.com/platform/tools/apksig/+/master/src/main/java/com/android/apksig/internal/apk/ApkSigningBlockUtils.java
                 VERITY_PADDING_BLOCK_ID => "VERITY_PADDING_BLOCK_ID",
-                // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
-                0x6dff800d => "SOURCE_STAMP_BLOCK_ID",
-                // https://android.googlesource.com/platform/frameworks/base/+/master/core/java/android/util/apk/SourceStampVerifier.java
-                0x9d6303f7 => "PROOF_OF_ROTATION_ATTR_ID",
+                SOURCE_STAMP_BLOCK_ID => "SOURCE_STAMP_BLOCK_ID",
+                PROOF_OF_ROTATION_ATTR_ID => "PROOF_OF_ROTATION_ATTR_ID",
                 SIGNATURE_SCHEME_V2_BLOCK_ID => "Signature Scheme V2",
                 SIGNATURE_SCHEME_V3_BLOCK_ID => "Signature Scheme V3",
                 _ => "Unknown",
@@ -104,7 +103,7 @@ pub struct MyReader {
 impl MyReader {
     /// Create a new reader
     pub fn new(data: &[u8]) -> Self {
-        MyReader {
+        Self {
             data: data.to_vec(),
             pos: 0,
         }
@@ -116,7 +115,7 @@ impl MyReader {
     }
 
     /// Get the current position
-    pub(crate) fn get_pos(&self) -> usize {
+    pub(crate) const fn get_pos(&self) -> usize {
         self.pos
     }
 
@@ -182,9 +181,8 @@ impl MyReader {
                         "Error: out of bounds reading u32\n{}",
                         std::backtrace::Backtrace::force_capture()
                     ));
-                } else {
-                    return Err("Error: out of bounds reading u32".to_string());
                 }
+                return Err("Error: out of bounds reading u32".to_owned());
             }
         };
         self.pos += 4;
@@ -207,9 +205,8 @@ impl MyReader {
                         "Error: out of bounds reading u64\n{}",
                         std::backtrace::Backtrace::force_capture()
                     ));
-                } else {
-                    return Err("Error: out of bounds reading u64".to_string());
                 }
+                return Err("Error: out of bounds reading u64".to_string());
             }
         };
         self.pos += 8;
