@@ -34,6 +34,12 @@ jobs:
               uses: Swatinem/rust-cache@v2
             - name: Build
               run: cd web_demo/ && trunk build --release --public-url ./
+            - uses: taiki-e/install-action@cargo-llvm-cov
+            - name: Run coverage
+              run: |
+                  cargo llvm-cov --all --html --no-cfg-coverage
+                  rsync -a target/llvm-cov/html/ dist/coverage/
+                  chmod -R +rx dist/coverage/
             - name: Upload coverage artifact
               uses: actions/upload-pages-artifact@v3
               with:
