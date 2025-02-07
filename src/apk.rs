@@ -1,6 +1,9 @@
 //! Handling the APK file by providing methods as `Apk` struct.
 
-use std::{fs::File, path::PathBuf};
+use std::{
+    fs::{read, File},
+    path::PathBuf,
+};
 
 use crate::{
     zip::{find_eocd, EndOfCentralDirectoryRecord},
@@ -151,5 +154,50 @@ impl Apk {
             )
         };
         digest_apk(&mut file, &offsets, algo).map_err(|e| e.to_string())
+    }
+
+    /// Get the raw APK file.
+    /// # Errors
+    /// Returns a string if the raw APK file fails.
+    pub fn get_raw_apk(&self) -> Result<Vec<u8>, String> {
+        let full_raw_file = read(&self.path).map_err(|e| e.to_string())?;
+
+        if self.raw {
+            return Ok(full_raw_file);
+        }
+
+        let sig = self.get_signing_block()?;
+
+        let start_sig = sig.file_offset_start;
+        let end_sig = sig.file_offset_end;
+        let size_sig = end_sig - start_sig;
+
+        let start_without_sig = match full_raw_file.get(..start_sig) {
+            Some(data) => data,
+            None => return Err("Invalid start signature".to_string()),
+        };
+        let end_without_sig = match full_raw_file.get(end_sig..) {
+            Some(data) => data,
+            None => return Err("Invalid end signature".to_string()),
+        };
+
+        let eocd = self.find_eocd()?;
+
+        let mut apk_without_signature = [start_without_sig, end_without_sig].concat();
+
+        // verify that the signature was removed
+        // so the size of the file should be the original size - size of the signature
+        let file_len = self.file_len - size_sig;
+
+        // modify the zip cd_offset
+        let new_cd_offset: u32 = eocd.cd_offset - size_sig as u32;
+        let idx_cd_offset = file_len - 6 - eocd.comment_len as usize;
+        let idx_cd_offset_end = file_len - 2 - eocd.comment_len as usize;
+        match apk_without_signature.get_mut(idx_cd_offset..idx_cd_offset_end) {
+            Some(data) => data.copy_from_slice(new_cd_offset.to_le_bytes().as_ref()),
+            None => return Err("Invalid cd offset".to_string()),
+        }
+
+        Ok(apk_without_signature)
     }
 }

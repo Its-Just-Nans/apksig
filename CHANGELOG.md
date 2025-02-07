@@ -5,8 +5,9 @@
 - hardening lib with `clippy::indexing_slicing` checks
 - remove `real_main` from `lib.rs` (all in `main.rs` instead)
 - move zip utilities to `zip` module
-- add `apk::digest()`
+- add `Apk::digest()` method
 - add `clippy::clippy::print_stdout` to forbid `println!` in lib - interestingly, `cargo clippy` does not catch `println!` in macros
+- add `Apk::get_raw_apk()` method
 
 ## `0.2.8`
 
