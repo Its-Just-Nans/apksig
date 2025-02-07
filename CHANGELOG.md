@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## `0.2.9`
 
 - hardening lib with `clippy::indexing_slicing` checks
 - remove `real_main` from `lib.rs` (all in `main.rs` instead)
