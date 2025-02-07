@@ -38,9 +38,8 @@ jobs:
             - name: Run coverage
               run: |
                   cargo llvm-cov --all --html --no-cfg-coverage
-                  mkdir -p dist/coverage
-                  rsync -a target/llvm-cov/html/ dist/coverage/
-                  chmod -R +rx dist/coverage/
+                  rsync -a target/llvm-cov/html/ web_demo/dist/coverage/
+                  chmod -R +rx web_demo/dist/coverage/
             - name: Upload coverage artifact
               uses: actions/upload-pages-artifact@v3
               with:
