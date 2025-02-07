@@ -42,7 +42,7 @@ pub const PROOF_OF_ROTATION_ATTR_ID: u32 = 0x9d63_03f7;
 const SIZE_UINT64: usize = mem::size_of::<u64>();
 
 /// Raw data extracted from the APK Signing Block
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct RawData {
     /// Size of the data
@@ -75,7 +75,7 @@ impl RawData {
 }
 
 /// Value of the APK Signing Block
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum ValueSigningBlock {
     /// Base Signing Block
@@ -186,7 +186,7 @@ impl ValueSigningBlock {
 }
 
 /// APK Signing Block
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SigningBlock {
     /// Offset of the start of the block in the file

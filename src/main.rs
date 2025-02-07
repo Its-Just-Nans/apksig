@@ -50,7 +50,7 @@ fn main() {
             );
         }
         Err(e) => {
-            eprintln!("Error: {:?}", e);
+            eprintln!("Error parsing APK Signing Block: {:?}", e);
             std::process::exit(1);
         }
     }

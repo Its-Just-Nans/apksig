@@ -29,6 +29,10 @@ apksig = { version = "0.1", default-features = false, features = ["serde", "hash
 
 See [./Cargo.toml](./Cargo.toml) for all available features and documentation.
 
+## Tests
+
+Coverage is available at <https://n4n5.dev/apksig/coverage/>.
+
 ## LICENSE
 
 - [MIT](./LICENSE)

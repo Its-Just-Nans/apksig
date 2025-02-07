@@ -21,7 +21,7 @@ pub const SIGNATURE_SCHEME_V3_BLOCK_ID: u32 = 0xf05368c0;
 pub const PROOF_OF_ROTATION_BLOCK_ID: u32 = 0x3ba06f8c;
 
 /// SignatureSchemeV3
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SignatureSchemeV3 {
     /// size
@@ -36,7 +36,7 @@ pub struct SignatureSchemeV3 {
 }
 
 /// Signers
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signers {
     /// size
@@ -78,7 +78,7 @@ impl Signers {
 }
 
 /// The `Signer` struct represents the signer of the signature scheme.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Signer {
     /// The size of the signer.
@@ -137,7 +137,12 @@ impl Signer {
             self.pub_key.to_u8(),
         ]
         .concat();
-        let padding = self.size.checked_sub(content.len()).map_or_else(std::vec::Vec::new, |calculated_size| vec![0; calculated_size]);
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,
@@ -148,7 +153,7 @@ impl Signer {
 }
 
 /// The `SignedData` struct represents the signed data of the signer.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct SignedData {
     /// The size of the signed data.
@@ -206,7 +211,12 @@ impl SignedData {
             self.additional_attributes.to_u8(),
         ]
         .concat();
-        let padding = self.size.checked_sub(content.len()).map_or_else(std::vec::Vec::new, |calculated_size| vec![0; calculated_size]);
+        let padding = self
+            .size
+            .checked_sub(content.len())
+            .map_or_else(std::vec::Vec::new, |calculated_size| {
+                vec![0; calculated_size]
+            });
         [
             (self.size as u32).to_le_bytes()[..].to_vec(),
             content,

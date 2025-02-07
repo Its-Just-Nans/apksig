@@ -280,4 +280,13 @@ mod test {
 
         assert_eq!(&BLOCK[..], &serialized_sig);
     }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn test_serde_serialization() {
+        let sig = SigningBlock::from_u8(&BLOCK).unwrap();
+        let serialized = serde_json::to_string(&sig).unwrap();
+        let deserialized: SigningBlock = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(sig, deserialized);
+    }
 }
