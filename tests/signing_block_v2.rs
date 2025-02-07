@@ -258,21 +258,19 @@ mod test {
         // technically you can extract the pubkey from the certificate
         // see test_certificate.rs for more info
 
-        let signed_data = SignedData::new(
-            Digests::new(vec![Digest::new(
-                signature_algorithm_id.clone(),
-                digest.clone(),
-            )]),
-            Certificates::new(vec![Certificate::new(certificate)]),
-            AdditionalAttributes::new(vec![]),
-        );
-
-        let content = ValueSigningBlock::new_v2(Signers::new(vec![Signer::new(
-            signed_data,
+        let scheme_v2 = ValueSigningBlock::new_v2(Signers::new(vec![Signer::new(
+            SignedData::new(
+                Digests::new(vec![Digest::new(
+                    signature_algorithm_id.clone(),
+                    digest.clone(),
+                )]),
+                Certificates::new(vec![Certificate::new(certificate)]),
+                AdditionalAttributes::new(vec![]),
+            ),
             Signatures::new(vec![Signature::new(signature_algorithm_id, signature)]),
             PubKey::new(pubkey),
         )]));
-        let sig = SigningBlock::new_with_padding(vec![content]).unwrap();
+        let sig = SigningBlock::new_with_padding(vec![scheme_v2]).unwrap();
 
         let serialized_sig = sig.to_u8();
 
