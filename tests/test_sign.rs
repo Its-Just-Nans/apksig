@@ -105,7 +105,7 @@ mod test {
         let private_key = rsa::RsaPrivateKey::from_pkcs8_pem(pkcs1_pem).unwrap();
 
         // this method will generate a new signature block inside the Apk struct
-        // therefor the Apk struct need to be mutable
+        // therefore the Apk struct need to be mutable
         apk.sign_v2(&algo, &cert, private_key).unwrap();
 
         // the Apk struct has now a signing block
