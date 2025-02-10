@@ -6,7 +6,6 @@ use std::{
 };
 
 use crate::{
-    scheme_v2::SignedData as SignedDataV2,
     zip::{find_eocd, EndOfCentralDirectoryRecord},
     SigningBlock,
 };
@@ -221,7 +220,7 @@ impl Apk {
                 AdditionalAttributes, Certificate, Certificates, Digest, Digests, PubKey,
                 Signature, Signatures,
             },
-            scheme_v2::{Signer, Signers},
+            scheme_v2::{SignedData as SignedDataV2, Signer, Signers},
         };
         use rsa::pkcs8::EncodePublicKey;
         let public_key = private_key.to_public_key();

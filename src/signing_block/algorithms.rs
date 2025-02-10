@@ -209,6 +209,7 @@ impl Algorithms {
     /// Sign data
     /// # Errors
     /// Returns a string if the signing fails.
+    #[cfg(feature = "signing")]
     pub fn sign(
         &self,
         private_key: rsa::RsaPrivateKey,
