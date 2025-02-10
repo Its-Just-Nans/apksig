@@ -73,7 +73,7 @@ impl Signers {
             .map(|signer| signer.to_u8())
             .collect::<Vec<Vec<u8>>>()
             .concat();
-        [(self.size as u32).to_le_bytes()[..].to_vec(), content].concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content].concat()
     }
 }
 
@@ -131,8 +131,8 @@ impl Signer {
     pub fn to_u8(&self) -> Vec<u8> {
         let content = [
             self.signed_data.to_u8(),
-            self.min_sdk.to_le_bytes()[..].to_vec(),
-            self.max_sdk.to_le_bytes()[..].to_vec(),
+            self.min_sdk.to_le_bytes().to_vec(),
+            self.max_sdk.to_le_bytes().to_vec(),
             self.signatures.to_u8(),
             self.pub_key.to_u8(),
         ]
@@ -144,7 +144,7 @@ impl Signer {
                 vec![0; calculated_size]
             });
         [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
+            (self.size as u32).to_le_bytes().to_vec(),
             content,
             padding,
         ]
@@ -206,8 +206,8 @@ impl SignedData {
         let content = [
             self.digests.to_u8(),
             self.certificates.to_u8(),
-            self.min_sdk.to_le_bytes()[..].to_vec(),
-            self.max_sdk.to_le_bytes()[..].to_vec(),
+            self.min_sdk.to_le_bytes().to_vec(),
+            self.max_sdk.to_le_bytes().to_vec(),
             self.additional_attributes.to_u8(),
         ]
         .concat();
@@ -218,7 +218,7 @@ impl SignedData {
                 vec![0; calculated_size]
             });
         [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
+            (self.size as u32).to_le_bytes().to_vec(),
             content,
             padding,
         ]
@@ -363,7 +363,7 @@ impl SignatureSchemeV3 {
 
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
-        let content = [self.id.to_le_bytes()[..].to_vec(), self.signers.to_u8()].concat();
+        let content = [self.id.to_le_bytes().to_vec(), self.signers.to_u8()].concat();
         let padding = self
             .size
             .checked_sub(content.len())
@@ -371,7 +371,7 @@ impl SignatureSchemeV3 {
                 vec![0; calculated_size]
             });
         [
-            (self.size as u64).to_le_bytes()[..].to_vec(),
+            (self.size as u64).to_le_bytes().to_vec(),
             content,
             padding,
         ]

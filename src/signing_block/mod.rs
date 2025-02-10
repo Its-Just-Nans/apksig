@@ -66,8 +66,8 @@ impl RawData {
     /// Serialize to u8
     fn to_u8(&self) -> Vec<u8> {
         [
-            (self.size as u64).to_le_bytes()[..].to_vec(),
-            self.id.to_le_bytes()[..].to_vec(),
+            (self.size as u64).to_le_bytes().to_vec(),
+            self.id.to_le_bytes().to_vec(),
             self.data.to_vec(),
         ]
         .concat()
@@ -510,9 +510,9 @@ impl SigningBlock {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         [
-            (self.size_of_block_start as u64).to_le_bytes()[..].to_vec(),
+            (self.size_of_block_start as u64).to_le_bytes().to_vec(),
             self.content_to_u8(),
-            (self.size_of_block_end as u64).to_le_bytes()[..].to_vec(),
+            (self.size_of_block_end as u64).to_le_bytes().to_vec(),
             self.magic.to_vec(),
         ]
         .concat()

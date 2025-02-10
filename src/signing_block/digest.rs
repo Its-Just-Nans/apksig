@@ -20,7 +20,7 @@ const CHUNK_SIZE: usize = 1 << 20; // 1MB
 
 /// Digest a chunk of data
 fn digest_chunk(chunk: &[u8], sig: &Algorithms) -> Vec<u8> {
-    let chunk_size = (chunk.len() as u32).to_le_bytes()[..].to_vec();
+    let chunk_size = (chunk.len() as u32).to_le_bytes().to_vec();
     let mut data = vec![START_BYTE_CHUNK];
     data.extend(chunk_size);
     data.extend(chunk);

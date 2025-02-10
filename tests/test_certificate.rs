@@ -7,11 +7,11 @@ mod test {
     fn test_certificate() {
         use apksig::common::Certificate;
         use std::fmt::Write;
-        let certificate = Certificate::new(CERTIFICATE.to_vec());
 
-        use x509_parser::prelude::FromDer;
+        // cargo add x509_parser
+        use x509_parser::prelude::{FromDer, X509Certificate};
 
-        let res = x509_parser::prelude::X509Certificate::from_der(&CERTIFICATE);
+        let res = X509Certificate::from_der(&CERTIFICATE);
         let (issuer, subject) = match res {
             Ok((_rem, cert)) => {
                 let issuer = cert.issuer.to_string();
@@ -21,6 +21,8 @@ mod test {
             _ => Err("x509 parsing failed".to_string()),
         }
         .unwrap();
+
+        let certificate = Certificate::new(CERTIFICATE.to_vec());
 
         assert_eq!(issuer, "CN=n4n5");
         assert_eq!(subject, "CN=n4n5");
@@ -93,6 +95,21 @@ mod test {
             assert_eq!(c, &serialized_sig[i]);
         }
 
-        assert_eq!(&BLOCK[..], &serialized_sig);
+        assert_eq!(&BLOCK.to_vec(), &serialized_sig);
+    }
+
+    #[test]
+    fn test_certificate_from_keystore() {
+        // ```sh
+        // # list the keys
+        // keytool -keystore ~/path/to/keystore -list
+        // # export the certificate
+        // keytool -keystore ~/path/to/keystore -exportcert -alias key_alias -file tests/keystore_cert.der
+        // ```
+
+        let cert_der = include_bytes!("./keystore_cert.der").to_vec();
+        let certificate = CERTIFICATE.to_vec();
+
+        assert_eq!(certificate, cert_der);
     }
 }

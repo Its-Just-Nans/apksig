@@ -73,8 +73,10 @@ impl Digest {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = [
-            u32::from(&self.signature_algorithm_id).to_le_bytes()[..].to_vec(),
-            (self.digest.len() as u32).to_le_bytes()[..].to_vec(),
+            u32::from(&self.signature_algorithm_id)
+                .to_le_bytes()
+                .to_vec(),
+            (self.digest.len() as u32).to_le_bytes().to_vec(),
             self.digest.to_vec(),
         ]
         .concat();
@@ -84,12 +86,7 @@ impl Digest {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -146,12 +143,7 @@ impl Digests {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -211,12 +203,7 @@ impl Certificates {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -285,12 +272,7 @@ impl Certificate {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -351,12 +333,7 @@ impl Signatures {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -415,8 +392,10 @@ impl Signature {
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
         let content = [
-            (u32::from(&self.signature_algorithm_id)).to_le_bytes()[..].to_vec(),
-            (self.signature.len() as u32).to_le_bytes()[..].to_vec(),
+            (u32::from(&self.signature_algorithm_id))
+                .to_le_bytes()
+                .to_vec(),
+            (self.signature.len() as u32).to_le_bytes().to_vec(),
             self.signature.to_vec(),
         ]
         .concat();
@@ -426,12 +405,7 @@ impl Signature {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -490,12 +464,7 @@ impl AdditionalAttributes {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -533,19 +502,14 @@ impl AdditionalAttribute {
     }
     /// Serialize to u8
     pub fn to_u8(&self) -> Vec<u8> {
-        let content = [self.id.to_le_bytes()[..].to_vec(), self.data.to_vec()].concat();
+        let content = [self.id.to_le_bytes().to_vec(), self.data.to_vec()].concat();
         let padding = self
             .size
             .checked_sub(content.len())
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -590,11 +554,6 @@ impl PubKey {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes()[..].to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
