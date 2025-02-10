@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unreleased
+## `0.3.0`
 
 - remove `Certificate::get_issuer()`
 - remove `certificate` feature
