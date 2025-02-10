@@ -202,9 +202,45 @@ impl Algorithms {
                     Err(_) => Err("Invalid signature".to_string()),
                 }
             }
-            _ => {
-                unimplemented!()
+            _ => Err("Not implemented".to_string()),
+        }
+    }
+
+    /// Sign data
+    /// # Errors
+    /// Returns a string if the signing fails.
+    pub fn sign(
+        &self,
+        private_key: rsa::RsaPrivateKey,
+        raw_data: &[u8],
+    ) -> Result<Vec<u8>, String> {
+        let hashed = &self.hash(raw_data);
+        match &self {
+            Self::RSASSA_PKCS1_v1_5_256 => {
+                use rsa::sha2::Sha256;
+                use rsa::Pkcs1v15Sign;
+                let pkcs = Pkcs1v15Sign::new::<Sha256>();
+                private_key.sign(pkcs, hashed).map_err(|e| e.to_string())
             }
+            Self::RSASSA_PKCS1_v1_5_512 => {
+                use rsa::sha2::Sha512;
+                use rsa::Pkcs1v15Sign;
+                let pkcs = Pkcs1v15Sign::new::<Sha512>();
+                private_key.sign(pkcs, hashed).map_err(|e| e.to_string())
+            }
+            Self::RSASSA_PSS_256 => {
+                use rsa::pss::Pss;
+                use rsa::sha2::Sha256;
+                let pkcs = Pss::new::<Sha256>();
+                private_key.sign(pkcs, hashed).map_err(|e| e.to_string())
+            }
+            Self::RSASSA_PSS_512 => {
+                use rsa::pss::Pss;
+                use rsa::sha2::Sha512;
+                let pkcs = Pss::new::<Sha512>();
+                private_key.sign(pkcs, hashed).map_err(|e| e.to_string())
+            }
+            _ => Err("Not implemented".to_string()),
         }
     }
 }

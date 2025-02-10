@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## Unreleased
+
+- remove `Certificate::get_issuer()`
+- remove `certificate` feature
+- remove the `traceback` feature
+
 ## `0.2.9`
 
 - hardening lib with `clippy::indexing_slicing` checks

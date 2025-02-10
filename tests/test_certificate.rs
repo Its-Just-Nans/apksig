@@ -2,7 +2,6 @@ mod test {
 
     include!("./raw_signing_block_v2.rs");
 
-    #[cfg(feature = "certificate")]
     #[cfg(feature = "hash")]
     #[test]
     fn test_certificate() {
@@ -10,7 +9,19 @@ mod test {
         use std::fmt::Write;
         let certificate = Certificate::new(CERTIFICATE.to_vec());
 
-        let (issuer, subject) = certificate.get_issuer().unwrap();
+        use x509_parser::prelude::FromDer;
+
+        let res = x509_parser::prelude::X509Certificate::from_der(&CERTIFICATE);
+        let (issuer, subject) = match res {
+            Ok((_rem, cert)) => {
+                let issuer = cert.issuer.to_string();
+                let subject = cert.subject.to_string();
+                Ok((issuer, subject))
+            }
+            _ => Err("x509 parsing failed".to_string()),
+        }
+        .unwrap();
+
         assert_eq!(issuer, "CN=n4n5");
         assert_eq!(subject, "CN=n4n5");
         let sha256 = certificate.sha256_cert();
@@ -36,7 +47,6 @@ mod test {
         assert_eq!(sha1_hex, SHA1_CERT_STR);
     }
 
-    #[cfg(feature = "certificate")]
     #[test]
     fn test_build_with_certificate() {
         use apksig::{

@@ -1,6 +1,7 @@
 #![cfg(feature = "signing")]
 
 mod test {
+    use std::path::Path;
 
     include!("./raw_signing_block_v2.rs");
 
@@ -42,5 +43,32 @@ mod test {
         let apk_path = dir.join("de.kaffeemitkoffein.imagepipe_51.apk");
         let apk = Apk::new(apk_path).unwrap();
         assert!(apk.verify().is_err()); // for now v3 verification is not supported
+    }
+
+    #[test]
+    fn test_sign_with_apk_struct() {
+        use apksig::signing_block::algorithms::Algorithms;
+
+        use apksig::Apk;
+        let file = file!();
+        let dir = Path::new(file).parent().unwrap();
+        let apk_path = dir.join("sms2call-1.0.8_no_sig.apk");
+
+        let mut apk = Apk::new_raw(apk_path).unwrap(); // create with new_raw()
+
+        let cert = CERTIFICATE.to_vec();
+        let signature_algorithm_id = Algorithms::RSASSA_PKCS1_v1_5_256;
+
+        let mut rng = rand::thread_rng();
+        let bits = 2048;
+
+        let private_key = rsa::RsaPrivateKey::new(&mut rng, bits).unwrap();
+
+        apk.sign_v2(&signature_algorithm_id, &cert, private_key)
+            .unwrap();
+
+        let sig = apk.get_signing_block().unwrap();
+        let sig_serialized = sig.to_u8();
+        assert_eq!(sig_serialized.len(), 4096);
     }
 }

@@ -263,24 +263,6 @@ impl Certificate {
         hasher.finalize().to_vec()
     }
 
-    /// Decodes the certificate of the signed data.
-    /// # Errors
-    /// Returns a string if the data is not valid.
-    #[cfg(feature = "certificate")]
-    pub fn get_issuer(&self) -> Result<(String, String), String> {
-        use x509_parser::prelude::FromDer;
-
-        let res = x509_parser::prelude::X509Certificate::from_der(&self.certificate);
-        match res {
-            Ok((_rem, cert)) => {
-                let issuer = cert.issuer.to_string();
-                let subject = cert.subject.to_string();
-                Ok((issuer, subject))
-            }
-            _ => Err("x509 parsing failed".to_string()),
-        }
-    }
-
     /// Parses the certificate of the signed data.
     /// # Errors
     /// Returns a string if the data is not valid.

@@ -132,18 +132,7 @@ impl MyReader {
         self.pos += len;
         match self.data.get(pos..self.pos) {
             Some(data) => Ok(data),
-            None => {
-                if cfg!(feature = "traceback") {
-                    Err(format!(
-                        "Error: out of bounds {}..{}\n{}",
-                        pos,
-                        self.pos,
-                        std::backtrace::Backtrace::force_capture()
-                    ))
-                } else {
-                    Err(format!("Error: out of bounds: {}..{}", pos, self.pos))
-                }
-            }
+            None => Err(format!("Error: out of bounds: {}..{}", pos, self.pos)),
         }
     }
 
@@ -176,13 +165,11 @@ impl MyReader {
                 buffer
             }
             None => {
-                if cfg!(feature = "traceback") {
-                    return Err(format!(
-                        "Error: out of bounds reading u32\n{}",
-                        std::backtrace::Backtrace::force_capture()
-                    ));
-                }
-                return Err("Error: out of bounds reading u32".to_owned());
+                return Err(format!(
+                    "Error: out of bounds reading u32 between {} and {}",
+                    self.pos,
+                    self.pos + 4
+                ));
             }
         };
         self.pos += 4;
@@ -200,13 +187,11 @@ impl MyReader {
                 buffer
             }
             None => {
-                if cfg!(feature = "traceback") {
-                    return Err(format!(
-                        "Error: out of bounds reading u64\n{}",
-                        std::backtrace::Backtrace::force_capture()
-                    ));
-                }
-                return Err("Error: out of bounds reading u64".to_string());
+                return Err(format!(
+                    "Error: out of bounds reading u64{} and {}",
+                    self.pos,
+                    self.pos + 4
+                ));
             }
         };
         self.pos += 8;

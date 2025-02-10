@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::{
+    scheme_v2::SignedData as SignedDataV2,
     zip::{find_eocd, EndOfCentralDirectoryRecord},
     SigningBlock,
 };
@@ -60,12 +61,12 @@ impl Apk {
     /// # Errors
     /// Returns a string if the decoding fails.
     pub fn get_signing_block(&self) -> Result<SigningBlock, String> {
-        if self.raw {
-            return Err("APK is raw".to_string());
-        }
         match self.sig {
             Some(ref sig) => Ok(sig.clone()),
             None => {
+                if self.raw {
+                    return Err("APK is raw".to_string());
+                }
                 let file = File::open(&self.path).map_err(|e| e.to_string())?;
                 let sig =
                     SigningBlock::from_reader(file, self.file_len, 0).map_err(|e| e.to_string())?;
@@ -92,27 +93,30 @@ impl Apk {
                             Some(signer) => signer,
                             None => return Err("No signer found".to_string()),
                         };
-                        let signature = match signer.signatures.signatures_data.get(idx) {
-                            Some(signature) => signature,
-                            None => return Err("No signature found".to_string()),
-                        };
-                        let signature = &signature.signature;
                         let pubkey = &signer.pub_key.data;
-                        let digest = match signer.signed_data.digests.digests_data.get(idx) {
-                            Some(digest) => digest,
-                            None => return Err("No digest found".to_string()),
-                        };
-                        let algo = &digest.signature_algorithm_id;
-
                         let signer_data = &signer.signed_data.to_u8();
                         let raw_data = match signer_data.get(4..) {
                             Some(data) => data,
                             None => return Err("Invalid signed data".to_string()),
                         };
+                        if signer.signatures.signatures_data.is_empty() {
+                            return Err("No signature found".to_string());
+                        }
+                        for (idx_sig, signature) in
+                            signer.signatures.signatures_data.iter().enumerate()
+                        {
+                            let signature = &signature.signature;
+                            let digest = match signer.signed_data.digests.digests_data.get(idx_sig)
+                            {
+                                Some(digest) => digest,
+                                None => return Err("No digest found".to_string()),
+                            };
+                            let algo = &digest.signature_algorithm_id;
 
-                        match algo.verify(pubkey, raw_data, signature) {
-                            Ok(_) => {}
-                            Err(e) => return Err(e),
+                            match algo.verify(pubkey, raw_data, signature) {
+                                Ok(_) => {}
+                                Err(e) => return Err(e),
+                            }
                         }
                     }
                 }
@@ -199,5 +203,57 @@ impl Apk {
         }
 
         Ok(apk_without_signature)
+    }
+
+    /// Sign the APK file with the given algorithm.
+    /// # Errors
+    /// Returns a string if the signing fails.
+    #[cfg(feature = "signing")]
+    #[cfg(feature = "hash")] // implied by "signing"
+    pub fn sign_v2(
+        &mut self,
+        algo: &Algorithms,
+        cert: &[u8],
+        private_key: rsa::RsaPrivateKey,
+    ) -> Result<(), String> {
+        use crate::{
+            common::{
+                AdditionalAttributes, Certificate, Certificates, Digest, Digests, PubKey,
+                Signature, Signatures,
+            },
+            scheme_v2::{Signer, Signers},
+        };
+        use rsa::pkcs8::EncodePublicKey;
+        let public_key = private_key.to_public_key();
+        let pubkey = public_key.to_public_key_der().map_err(|e| e.to_string())?;
+        let pubkey = pubkey.into_vec();
+        let digest = self.digest(algo)?;
+
+        let signed_data = SignedDataV2::new(
+            Digests::new(vec![Digest::new(algo.clone(), digest)]),
+            Certificates::new(vec![Certificate::new(cert.to_vec())]),
+            AdditionalAttributes::new(vec![]),
+        );
+
+        let signed_data_serialized = signed_data.to_u8();
+        let to_sign = &signed_data_serialized
+            .get(4..)
+            .ok_or("Invalid signed data")?;
+        let signature = algo.sign(private_key, to_sign)?;
+
+        let one_signer = Signer::new(
+            signed_data,
+            Signatures::new(vec![Signature::new(algo.clone(), signature)]),
+            PubKey::new(pubkey),
+        );
+
+        let signing_block =
+            SigningBlock::new_with_padding(vec![ValueSigningBlock::new_v2(Signers::new(vec![
+                one_signer,
+            ]))])
+            .map_err(|e| e.to_string())?;
+
+        self.sig = Some(signing_block);
+        Ok(())
     }
 }
