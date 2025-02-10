@@ -7,12 +7,12 @@ use std::{
 };
 
 use crate::{
-    zip::{find_eocd, EndOfCentralDirectoryRecord},
+    zip::{find_eocd, EndOfCentralDirectoryRecord, FileOffsets},
     SigningBlock,
 };
 
 #[cfg(feature = "hash")]
-use crate::{digest_apk, zip::FileOffsets, Algorithms};
+use crate::{digest_apk, Algorithms};
 
 #[cfg(feature = "signing")]
 use crate::ValueSigningBlock;
