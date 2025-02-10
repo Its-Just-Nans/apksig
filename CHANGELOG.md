@@ -5,6 +5,7 @@
 - remove `Certificate::get_issuer()`
 - remove `certificate` feature
 - remove the `traceback` feature
+- start adding `Apk::sign()` - the API is not very clean for now
 
 ## `0.2.9`
 
