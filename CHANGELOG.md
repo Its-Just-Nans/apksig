@@ -6,6 +6,8 @@
 - remove `certificate` feature
 - remove the `traceback` feature
 - start adding `Apk::sign()` - the API is not very clean for now
+- add `Apk::write_with_signature()`
+- change error result to `std::io::Error` instead of `String`
 
 ## `0.2.9`
 

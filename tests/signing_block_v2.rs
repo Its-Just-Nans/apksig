@@ -2,6 +2,12 @@ include!("./raw_signing_block_v2.rs");
 
 mod test {
 
+    use std::{
+        fs::File,
+        io::{Read, Seek},
+        path::Path,
+    };
+
     use super::*;
     use apksig::{
         common::{
@@ -11,7 +17,7 @@ mod test {
         scheme_v2::{SignedData, Signer, Signers},
         signing_block::{algorithms::Algorithms, RawData, VERITY_PADDING_BLOCK_ID},
         utils::MyReader,
-        SignatureSchemeV2, SigningBlock, ValueSigningBlock, MAGIC, MAGIC_LEN,
+        Apk, SignatureSchemeV2, SigningBlock, ValueSigningBlock, MAGIC, MAGIC_LEN,
         SIGNATURE_SCHEME_V2_BLOCK_ID,
     };
 
@@ -288,5 +294,38 @@ mod test {
         let serialized = serde_json::to_string(&sig).unwrap();
         let deserialized: SigningBlock = serde_json::from_str(&serialized).unwrap();
         assert_eq!(sig, deserialized);
+    }
+
+    #[test]
+    fn test_offsets() {
+        let file = file!();
+        let dir = Path::new(file).parent().unwrap();
+        let apk_path = dir.join("sms2call-1.0.8.apk");
+        let apk = Apk::new(apk_path.clone()).unwrap();
+        let eocd = apk.find_eocd().unwrap();
+        assert_eq!(eocd.file_offset, 4952258);
+        assert_eq!(eocd.disk_number, 0);
+        assert_eq!(eocd.disk_with_cd, 0);
+        assert_eq!(eocd.num_entries, 870);
+        assert_eq!(eocd.total_entries, 870);
+        assert_eq!(eocd.cd_size, 59390);
+        assert_eq!(eocd.cd_offset, 4892868);
+        assert_eq!(eocd.comment_len, 0x0000);
+        assert_eq!(eocd.comment.len(), 0);
+
+        let mut file = File::open(apk_path).unwrap();
+        file.seek(std::io::SeekFrom::Start(eocd.file_offset as u64))
+            .unwrap();
+        let mut buffer = vec![0; 4952280 - 4952258];
+        file.read_exact(&mut buffer).unwrap();
+        assert_eq!(buffer, eocd.to_u8());
+
+        let offsets = apk.get_offsets().unwrap();
+        assert_eq!(offsets.start_content, 0);
+        assert_eq!(offsets.stop_content, 4888772);
+        assert_eq!(offsets.start_cd, 4892868);
+        assert_eq!(offsets.stop_cd, 4952258);
+        assert_eq!(offsets.start_eocd, 4952258);
+        assert_eq!(offsets.stop_eocd, 4952280);
     }
 }

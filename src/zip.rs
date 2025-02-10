@@ -37,6 +37,23 @@ pub struct EndOfCentralDirectoryRecord {
     pub comment: Vec<u8>,
 }
 
+impl EndOfCentralDirectoryRecord {
+    /// Convert the EOCD to a u8 vector
+    pub fn to_u8(&self) -> Vec<u8> {
+        let mut data = Vec::new();
+        data.extend_from_slice(&self.signature);
+        data.extend_from_slice(&self.disk_number.to_le_bytes());
+        data.extend_from_slice(&self.disk_with_cd.to_le_bytes());
+        data.extend_from_slice(&self.num_entries.to_le_bytes());
+        data.extend_from_slice(&self.total_entries.to_le_bytes());
+        data.extend_from_slice(&self.cd_size.to_le_bytes());
+        data.extend_from_slice(&self.cd_offset.to_le_bytes());
+        data.extend_from_slice(&self.comment_len.to_le_bytes());
+        data.extend_from_slice(&self.comment);
+        data
+    }
+}
+
 /// Find the EOCD of the APK file
 /// # Errors
 /// Returns an error if the file cannot be read

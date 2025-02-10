@@ -253,10 +253,11 @@ impl SigningBlock {
         let new_content = [content, padding_block].concat();
         let size = new_content.iter().fold(0, |acc, x| acc + x.size());
         let size = size + SIZE_UINT64 + MAGIC_LEN;
-        debug_assert!((SIZE_UINT64 + size) % 4096 == 0);
+        let total_size = SIZE_UINT64 + size;
+        debug_assert!(total_size % 4096 == 0);
         Ok(Self {
             file_offset_start: 0,
-            file_offset_end: 0,
+            file_offset_end: total_size,
             size_of_block_start: size,
             content_size,
             content: new_content,
@@ -522,5 +523,11 @@ impl SigningBlock {
     pub const fn get_full_size(&self) -> usize {
         // size of the block + size of u64 (8 bytes)
         self.size_of_block_start + mem::size_of::<u64>()
+    }
+
+    /// Offset the block by a certain amount
+    pub fn offset_by(&mut self, offset: usize) {
+        self.file_offset_start += offset;
+        self.file_offset_end += offset;
     }
 }

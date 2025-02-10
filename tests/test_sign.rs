@@ -1,7 +1,7 @@
 #![cfg(feature = "signing")]
 
 mod test {
-    use std::path::Path;
+    use std::{fs::read, path::Path};
 
     include!("./raw_signing_block_v2.rs");
 
@@ -60,7 +60,7 @@ mod test {
         let algo = Algorithms::RSASSA_PKCS1_v1_5_256;
 
         let mut rng = rand::thread_rng(); // rand v0.8.0
-        let bits = 2048;
+        let bits = 512; // force reduce the bits for faster testing
 
         let private_key = rsa::RsaPrivateKey::new(&mut rng, bits).unwrap();
 
@@ -99,7 +99,8 @@ mod test {
         // openssl pkcs12 -in ~/path/to/keystore.p12 -nodes -nocerts -out private.key
         // ```
         // see more at <https://n4n5.dev/articles/work-with-apk/>
-        let pkcs1_pem = ""; // include_str!("../private.key");
+        // let pkcs1_pem = include_str!("../private.key");
+        let pkcs1_pem = "";
 
         let private_key = rsa::RsaPrivateKey::from_pkcs8_pem(pkcs1_pem).unwrap();
 
@@ -112,5 +113,12 @@ mod test {
         let sig_serialized = sig.to_u8();
         assert_eq!(sig_serialized.len(), 4096);
         assert_eq!(BLOCK.to_vec(), sig_serialized);
+
+        let mut writer = Vec::new();
+        apk.write_with_signature(&mut writer).unwrap();
+
+        let base_apk = read(dir.join("sms2call-1.0.8.apk")).unwrap();
+
+        assert_eq!(writer, base_apk);
     }
 }

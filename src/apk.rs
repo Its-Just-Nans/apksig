@@ -2,6 +2,7 @@
 
 use std::{
     fs::{read, File},
+    io::{copy, Read, Seek, Write},
     path::PathBuf,
 };
 
@@ -59,16 +60,18 @@ impl Apk {
     /// Decode the signing block of the APK file.
     /// # Errors
     /// Returns a string if the decoding fails.
-    pub fn get_signing_block(&self) -> Result<SigningBlock, String> {
+    pub fn get_signing_block(&self) -> Result<SigningBlock, std::io::Error> {
         match self.sig {
             Some(ref sig) => Ok(sig.clone()),
             None => {
                 if self.raw {
-                    return Err("APK is raw".to_string());
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "APK is raw",
+                    ));
                 }
-                let file = File::open(&self.path).map_err(|e| e.to_string())?;
-                let sig =
-                    SigningBlock::from_reader(file, self.file_len, 0).map_err(|e| e.to_string())?;
+                let file = File::open(&self.path)?;
+                let sig = SigningBlock::from_reader(file, self.file_len, 0)?;
                 Ok(sig)
             }
         }
@@ -79,7 +82,7 @@ impl Apk {
     /// Returns a string if the verification fails.
     #[cfg(feature = "signing")]
     pub fn verify(&self) -> Result<(), String> {
-        let signing_block = self.get_signing_block()?;
+        let signing_block = self.get_signing_block().map_err(|e| e.to_string())?;
         for block in signing_block.content {
             match block {
                 ValueSigningBlock::SignatureSchemeV2Block(v2) => {
@@ -132,38 +135,61 @@ impl Apk {
     /// # Errors
     /// Returns a string if the End of Central Directory Record is not found.
     /// Or a problem occurs
-    pub fn find_eocd(&self) -> Result<EndOfCentralDirectoryRecord, String> {
-        let mut file = File::open(&self.path).map_err(|e| e.to_string())?;
-        find_eocd(&mut file, self.file_len).map_err(|e| e.to_string())
+    pub fn find_eocd(&self) -> Result<EndOfCentralDirectoryRecord, std::io::Error> {
+        let mut file = File::open(&self.path)?;
+        find_eocd(&mut file, self.file_len)
+    }
+
+    /// Get the offsets of the APK file.
+    /// # Errors
+    /// Returns a string if the offsets are not found.
+    pub fn get_offsets(&self) -> Result<FileOffsets, std::io::Error> {
+        let eocd = self.find_eocd()?;
+        match self.get_signing_block() {
+            Ok(sig) => {
+                let file_len = if self.raw {
+                    self.file_len + sig.get_full_size()
+                } else {
+                    self.file_len
+                };
+                let stop_cd = if self.raw {
+                    eocd.file_offset + sig.get_full_size()
+                } else {
+                    eocd.file_offset
+                };
+                Ok(FileOffsets::new(
+                    sig.file_offset_start,
+                    sig.file_offset_end,
+                    stop_cd,
+                    file_len,
+                ))
+            }
+            Err(_) => {
+                let stop_content = eocd.cd_offset as usize;
+                Ok(FileOffsets::without_signature(
+                    stop_content,
+                    eocd.file_offset,
+                    self.file_len,
+                ))
+            }
+        }
     }
 
     /// Calculate the digest of the APK file.
     /// # Errors
     /// Returns a string if the digest fails.
     #[cfg(feature = "hash")]
-    pub fn digest(&self, algo: &Algorithms) -> Result<Vec<u8>, String> {
-        let mut file = File::open(&self.path).map_err(|e| e.to_string())?;
-        let eocd = self.find_eocd()?;
-        let offsets = if self.raw {
-            let stop_content = eocd.cd_offset as usize;
-            FileOffsets::without_signature(stop_content, eocd.file_offset, self.file_len)
-        } else {
-            let sig = self.get_signing_block()?;
-            FileOffsets::new(
-                sig.file_offset_start,
-                sig.file_offset_end,
-                eocd.file_offset,
-                self.file_len,
-            )
-        };
-        digest_apk(&mut file, &offsets, algo).map_err(|e| e.to_string())
+    pub fn digest(&self, algo: &Algorithms) -> Result<Vec<u8>, std::io::Error> {
+        let mut file = File::open(&self.path)?;
+        let offsets = self.get_offsets()?;
+        digest_apk(&mut file, &offsets, algo)
     }
 
     /// Get the raw APK file.
     /// # Errors
     /// Returns a string if the raw APK file fails.
-    pub fn get_raw_apk(&self) -> Result<Vec<u8>, String> {
-        let full_raw_file = read(&self.path).map_err(|e| e.to_string())?;
+    pub fn get_raw_apk(&self) -> Result<Vec<u8>, std::io::Error> {
+        let full_raw_file = read(&self.path)?;
 
         if self.raw {
             return Ok(full_raw_file);
@@ -177,31 +203,65 @@ impl Apk {
 
         let start_without_sig = match full_raw_file.get(..start_sig) {
             Some(data) => data,
-            None => return Err("Invalid start signature".to_string()),
+            None => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    "Invalid start signature",
+                ))
+            }
         };
-        let end_without_sig = match full_raw_file.get(end_sig..) {
-            Some(data) => data,
-            None => return Err("Invalid end signature".to_string()),
-        };
+        let mut eocd = self.find_eocd()?;
+        eocd.cd_offset -= size_sig as u32;
 
-        let eocd = self.find_eocd()?;
+        let eocd_serialized = eocd.to_u8();
 
-        let mut apk_without_signature = [start_without_sig, end_without_sig].concat();
+        let end_without_sig =
+            match full_raw_file.get(end_sig..(full_raw_file.len() - eocd_serialized.len())) {
+                Some(data) => data,
+                None => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Invalid end signature",
+                    ))
+                }
+            };
 
-        // verify that the signature was removed
-        // so the size of the file should be the original size - size of the signature
-        let file_len = self.file_len - size_sig;
-
-        // modify the zip cd_offset
-        let new_cd_offset: u32 = eocd.cd_offset - size_sig as u32;
-        let idx_cd_offset = file_len - 6 - eocd.comment_len as usize;
-        let idx_cd_offset_end = file_len - 2 - eocd.comment_len as usize;
-        match apk_without_signature.get_mut(idx_cd_offset..idx_cd_offset_end) {
-            Some(data) => data.copy_from_slice(new_cd_offset.to_le_bytes().as_ref()),
-            None => return Err("Invalid cd offset".to_string()),
-        }
+        let apk_without_signature = [start_without_sig, end_without_sig, &eocd_serialized].concat();
 
         Ok(apk_without_signature)
+    }
+
+    /// Write the APK file with the signature.
+    /// # Errors
+    /// Returns a string if the writing fails.
+    pub fn write_with_signature<W: Write>(&self, writer: &mut W) -> Result<(), std::io::Error> {
+        let sig = self.get_signing_block()?;
+        let offsets = self.get_offsets()?;
+        let mut eocd = self.find_eocd()?;
+        eocd.cd_offset += sig.get_full_size() as u32;
+        let oecd_serialized = eocd.to_u8();
+        let eocd_len = oecd_serialized.len();
+
+        // copy entries
+        let file_reader = File::open(&self.path)?;
+        let mut reader_entries = file_reader.take(offsets.stop_content as u64);
+        copy(&mut reader_entries, writer)?;
+
+        // copy signature block
+        writer.write_all(&sig.to_u8())?;
+
+        // copy zip central directory
+        let mut file_reader_end = File::open(&self.path)?;
+        let seek_end = (offsets.start_cd - sig.get_full_size()) as u64;
+        file_reader_end.seek(std::io::SeekFrom::Start(seek_end))?;
+        let take = (offsets.stop_eocd - offsets.start_cd - eocd_len) as u64;
+        let mut file_reader_end = file_reader_end.take(take);
+        copy(&mut file_reader_end, writer)?;
+
+        // copy end of central directory
+        writer.write_all(&oecd_serialized)?;
+
+        Ok(())
     }
 
     /// Sign the APK file with the given algorithm.
@@ -214,7 +274,7 @@ impl Apk {
         algo: &Algorithms,
         cert: &[u8],
         private_key: rsa::RsaPrivateKey,
-    ) -> Result<(), String> {
+    ) -> Result<(), std::io::Error> {
         use crate::{
             common::{
                 AdditionalAttributes, Certificate, Certificates, Digest, Digests, PubKey,
@@ -224,7 +284,9 @@ impl Apk {
         };
         use rsa::pkcs8::EncodePublicKey;
         let public_key = private_key.to_public_key();
-        let pubkey = public_key.to_public_key_der().map_err(|e| e.to_string())?;
+        let pubkey = public_key
+            .to_public_key_der()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
         let pubkey = pubkey.into_vec();
         let digest = self.digest(algo)?;
 
@@ -235,10 +297,12 @@ impl Apk {
         );
 
         let signed_data_serialized = signed_data.to_u8();
-        let to_sign = &signed_data_serialized
-            .get(4..)
-            .ok_or("Invalid signed data")?;
-        let signature = algo.sign(private_key, to_sign)?;
+        let to_sign = &signed_data_serialized.get(4..).ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid signed data")
+        })?;
+        let signature = algo
+            .sign(private_key, to_sign)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
 
         let one_signer = Signer::new(
             signed_data,
@@ -246,11 +310,12 @@ impl Apk {
             PubKey::new(pubkey),
         );
 
-        let signing_block =
+        let mut signing_block =
             SigningBlock::new_with_padding(vec![ValueSigningBlock::new_v2(Signers::new(vec![
                 one_signer,
-            ]))])
-            .map_err(|e| e.to_string())?;
+            ]))])?;
+        let eocd = self.find_eocd()?;
+        signing_block.offset_by(eocd.cd_offset as usize);
 
         self.sig = Some(signing_block);
         Ok(())
