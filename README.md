@@ -23,8 +23,8 @@ To use `apksign` without dependencies, or only with useful dependencies for your
 ```toml
 [dependencies]
 apksig = { version = "xx", default-features = false } # you want nothing
-# or
-apksig = { version = "xx", default-features = false, features = ["serde", "hash"] } # you want only some features
+# or if you want only some features
+apksig = { version = "xx", default-features = false, features = ["serde", "hash"] }
 ```
 
 See [./Cargo.toml](./Cargo.toml) for all available features and documentation.
