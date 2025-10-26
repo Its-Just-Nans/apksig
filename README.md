@@ -1,4 +1,4 @@
-# apksig [![crates.io version](https://img.shields.io/crates/v/apksig)](https://crates.io/crates/apksig) ![crates.io downloads](https://img.shields.io/crates/d/apksig) [![docs.rs](https://img.shields.io/docsrs/apksig)](https://crates.io/crates/apksig)
+# apksig [![crates.io version](https://img.shields.io/crates/v/apksig)](https://crates.io/crates/apksig) ![crates.io downloads](https://img.shields.io/crates/d/apksig) [![docs.rs](https://img.shields.io/docsrs/apksig)](https://docs.rs/apksig)
 
 - <https://docs.rs/apksig> - documentation
 - <https://n4n5.dev/apksig/> - online demo
