@@ -143,12 +143,7 @@ impl Signer {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes().to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -217,12 +212,7 @@ impl SignedData {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u32).to_le_bytes().to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u32).to_le_bytes().to_vec(), content, padding].concat()
     }
 }
 
@@ -370,11 +360,6 @@ impl SignatureSchemeV3 {
             .map_or_else(std::vec::Vec::new, |calculated_size| {
                 vec![0; calculated_size]
             });
-        [
-            (self.size as u64).to_le_bytes().to_vec(),
-            content,
-            padding,
-        ]
-        .concat()
+        [(self.size as u64).to_le_bytes().to_vec(), content, padding].concat()
     }
 }

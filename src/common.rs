@@ -238,7 +238,7 @@ impl Certificate {
     /// Returns the MD5 hash of the certificate.
     #[cfg(feature = "hash")]
     pub fn md5_cert(&self) -> Vec<u8> {
-        use md5::{Md5, Digest};
+        use md5::{Digest, Md5};
         let mut hasher = Md5::new();
         hasher.update(&self.certificate);
         hasher.finalize().to_vec()

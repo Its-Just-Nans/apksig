@@ -218,9 +218,7 @@ impl SigningBlock {
     pub fn new_with_padding(content: Vec<ValueSigningBlock>) -> Result<Self, std::io::Error> {
         for c in &content {
             if c.id() == VERITY_PADDING_BLOCK_ID {
-                return Err(std::io::Error::other(
-                    "Error: Padding block already exists",
-                ));
+                return Err(std::io::Error::other("Error: Padding block already exists"));
             }
         }
         let content_size = content.iter().fold(0, |acc, x| acc + x.size());
@@ -305,9 +303,10 @@ impl SigningBlock {
                         let mut sig = match Self::parse_full_block(&vec_full_block) {
                             Ok(v) => v,
                             Err(e) => {
-                                return Err(std::io::Error::other(
-                                    format!("Error parsing full block: {}", e),
-                                ));
+                                return Err(std::io::Error::other(format!(
+                                    "Error parsing full block: {}",
+                                    e
+                                )));
                             }
                         };
                         sig.file_offset_start = file_offset_start;
@@ -317,20 +316,19 @@ impl SigningBlock {
                     }
                 }
                 Err(_) => {
-                    return Err(std::io::Error::other(
-                        format!("Error reading file, {}", file_len - idx),
-                    ));
+                    return Err(std::io::Error::other(format!(
+                        "Error reading file, {}",
+                        file_len - idx
+                    )));
                 }
             }
         }
 
-        Err(std::io::Error::other(
-            format!(
-                "from_reader(): Magic not found\nMAGIC is '{:?}' (as [u8]) or '{}' (as string)",
-                MAGIC,
-                String::from_utf8_lossy(MAGIC)
-            ),
-        ))
+        Err(std::io::Error::other(format!(
+            "from_reader(): Magic not found\nMAGIC is '{:?}' (as [u8]) or '{}' (as string)",
+            MAGIC,
+            String::from_utf8_lossy(MAGIC)
+        )))
     }
 
     /// Parse the APK Signing Block from a byte array
