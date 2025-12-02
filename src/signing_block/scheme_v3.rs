@@ -10,8 +10,8 @@ use crate::signing_block::algorithms::Algorithms;
 use crate::utils::{add_space, print_hexe, print_string};
 
 use crate::{
-    common::{AdditionalAttributes, Certificates, Digests, PubKey, Signatures},
     MyReader,
+    common::{AdditionalAttributes, Certificates, Digests, PubKey, Signatures},
 };
 
 /// Signature Scheme V3

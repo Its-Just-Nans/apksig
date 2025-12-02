@@ -52,13 +52,13 @@ mod test {
     #[test]
     fn test_build_with_certificate() {
         use apksig::{
+            SigningBlock, ValueSigningBlock,
             common::{
                 AdditionalAttributes, Certificate, Certificates, Digest, Digests, PubKey,
                 Signature, Signatures,
             },
             scheme_v2::{SignedData, Signer, Signers},
             signing_block::algorithms::Algorithms,
-            SigningBlock, ValueSigningBlock,
         };
         use x509_parser::prelude::{FromDer, X509Certificate};
 

@@ -1,18 +1,18 @@
 //! Handling the APK file by providing methods as `Apk` struct.
 
 use std::{
-    fs::{read, File},
-    io::{copy, Read, Seek, Write},
+    fs::{File, read},
+    io::{Read, Seek, Write, copy},
     path::PathBuf,
 };
 
 use crate::{
-    zip::{find_eocd, EndOfCentralDirectoryRecord, FileOffsets},
     SigningBlock,
+    zip::{EndOfCentralDirectoryRecord, FileOffsets, find_eocd},
 };
 
 #[cfg(feature = "hash")]
-use crate::{digest_apk, Algorithms};
+use crate::{Algorithms, digest_apk};
 
 #[cfg(feature = "signing")]
 use crate::ValueSigningBlock;
@@ -207,7 +207,7 @@ impl Apk {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     "Invalid start signature",
-                ))
+                ));
             }
         };
         let mut eocd = self.find_eocd()?;
@@ -222,7 +222,7 @@ impl Apk {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
                         "Invalid end signature",
-                    ))
+                    ));
                 }
             };
 

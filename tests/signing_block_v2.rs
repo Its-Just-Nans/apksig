@@ -10,15 +10,15 @@ mod test {
 
     use super::*;
     use apksig::{
+        Apk, MAGIC, MAGIC_LEN, SIGNATURE_SCHEME_V2_BLOCK_ID, SignatureSchemeV2, SigningBlock,
+        ValueSigningBlock,
         common::{
             AdditionalAttributes, Certificate, Certificates, Digest, Digests, PubKey, Signature,
             Signatures,
         },
         scheme_v2::{SignedData, Signer, Signers},
-        signing_block::{algorithms::Algorithms, RawData, VERITY_PADDING_BLOCK_ID},
+        signing_block::{RawData, VERITY_PADDING_BLOCK_ID, algorithms::Algorithms},
         utils::MyReader,
-        Apk, SignatureSchemeV2, SigningBlock, ValueSigningBlock, MAGIC, MAGIC_LEN,
-        SIGNATURE_SCHEME_V2_BLOCK_ID,
     };
 
     #[test]

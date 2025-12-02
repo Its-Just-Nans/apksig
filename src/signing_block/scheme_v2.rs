@@ -6,6 +6,7 @@ use std::mem;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
+use crate::MyReader;
 use crate::add_space;
 use crate::common::AdditionalAttributes;
 use crate::common::Certificates;
@@ -13,7 +14,6 @@ use crate::common::Digests;
 use crate::common::PubKey;
 use crate::common::Signatures;
 use crate::utils::print_string;
-use crate::MyReader;
 
 /// Signature Scheme V2
 pub const SIGNATURE_SCHEME_V2_BLOCK_ID: u32 = 0x7109871a;

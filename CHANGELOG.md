@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## `0.4.0`
+
+- bump version
+- use `md-5`
+- move to `edition = "2024"`
+
 ## `0.3.0`
 
 - remove `Certificate::get_issuer()`

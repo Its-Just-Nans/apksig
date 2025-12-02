@@ -37,10 +37,10 @@ pub use signing_block::digest::digest_apk;
 
 pub use apk::Apk;
 pub use signing_block::algorithms::Algorithms;
-pub use signing_block::scheme_v2::{SignatureSchemeV2, SIGNATURE_SCHEME_V2_BLOCK_ID};
-pub use signing_block::scheme_v3::{SignatureSchemeV3, SIGNATURE_SCHEME_V3_BLOCK_ID};
+pub use signing_block::scheme_v2::{SIGNATURE_SCHEME_V2_BLOCK_ID, SignatureSchemeV2};
+pub use signing_block::scheme_v3::{SIGNATURE_SCHEME_V3_BLOCK_ID, SignatureSchemeV3};
 pub use signing_block::{
-    scheme_v2, scheme_v3, RawData, SigningBlock, ValueSigningBlock, MAGIC, MAGIC_LEN,
+    MAGIC, MAGIC_LEN, RawData, SigningBlock, ValueSigningBlock, scheme_v2, scheme_v3,
 };
 pub use utils::MyReader;
 

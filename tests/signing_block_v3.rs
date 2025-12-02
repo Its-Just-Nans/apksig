@@ -2,8 +2,8 @@
 
 mod test {
     use apksig::{
-        SigningBlock, ValueSigningBlock, MAGIC, MAGIC_LEN, SIGNATURE_SCHEME_V2_BLOCK_ID,
-        SIGNATURE_SCHEME_V3_BLOCK_ID,
+        MAGIC, MAGIC_LEN, SIGNATURE_SCHEME_V2_BLOCK_ID, SIGNATURE_SCHEME_V3_BLOCK_ID, SigningBlock,
+        ValueSigningBlock,
     };
     use std::io::Read;
     use std::{fs::File, path::Path};

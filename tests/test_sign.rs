@@ -8,9 +8,9 @@ mod test {
     #[test]
     fn test_verify_signature() {
         use apksig::{
+            Algorithms,
             common::{AdditionalAttributes, Certificate, Certificates, Digest, Digests},
             scheme_v2::SignedData,
-            Algorithms,
         };
 
         let algorithm = Algorithms::RSASSA_PKCS1_v1_5_256;

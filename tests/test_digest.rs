@@ -5,12 +5,12 @@ mod test {
     include!("./raw_signing_block_v2.rs");
     use apksig::Apk;
     use apksig::{
-        signing_block::{algorithms::Algorithms, digest::digest_apk},
-        zip::{find_eocd, FileOffsets},
         SigningBlock,
+        signing_block::{algorithms::Algorithms, digest::digest_apk},
+        zip::{FileOffsets, find_eocd},
     };
     use std::{
-        fs::{read, File},
+        fs::{File, read},
         os::unix::fs::MetadataExt,
         path::Path,
     };

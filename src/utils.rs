@@ -27,11 +27,11 @@ macro_rules! print_string {
 }
 pub(crate) use print_string;
 
+use crate::SIGNATURE_SCHEME_V2_BLOCK_ID;
+use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
 use crate::signing_block::PROOF_OF_ROTATION_ATTR_ID;
 use crate::signing_block::SOURCE_STAMP_BLOCK_ID;
 use crate::signing_block::VERITY_PADDING_BLOCK_ID;
-use crate::SIGNATURE_SCHEME_V2_BLOCK_ID;
-use crate::SIGNATURE_SCHEME_V3_BLOCK_ID;
 
 /// Print a hex string up to 20 bytes
 pub(crate) fn print_hexe(type_name: &str, data: &[u8]) {

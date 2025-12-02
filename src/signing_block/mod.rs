@@ -14,14 +14,14 @@ pub mod digest;
 pub mod scheme_v2;
 pub mod scheme_v3;
 
-use crate::utils::create_fixed_buffer_8;
 #[cfg(feature = "directprint")]
 use crate::utils::MagicNumberDecoder;
+use crate::utils::create_fixed_buffer_8;
 
 use crate::utils::print_string;
-use crate::utils::{add_space, MyReader};
-use scheme_v2::{SignatureSchemeV2, Signers as SignersV2, SIGNATURE_SCHEME_V2_BLOCK_ID};
-use scheme_v3::{SignatureSchemeV3, Signers as SignersV3, SIGNATURE_SCHEME_V3_BLOCK_ID};
+use crate::utils::{MyReader, add_space};
+use scheme_v2::{SIGNATURE_SCHEME_V2_BLOCK_ID, SignatureSchemeV2, Signers as SignersV2};
+use scheme_v3::{SIGNATURE_SCHEME_V3_BLOCK_ID, SignatureSchemeV3, Signers as SignersV3};
 
 /// Magic number of the APK Signing Block
 pub const MAGIC: &[u8; 16] = b"APK Sig Block 42";
@@ -102,18 +102,18 @@ impl ValueSigningBlock {
     /// ID of the value
     pub const fn id(&self) -> u32 {
         match self {
-            Self::BaseSigningBlock(ref block) => block.id,
-            Self::SignatureSchemeV2Block(ref scheme) => scheme.id,
-            Self::SignatureSchemeV3Block(ref scheme) => scheme.id,
+            Self::BaseSigningBlock(block) => block.id,
+            Self::SignatureSchemeV2Block(scheme) => scheme.id,
+            Self::SignatureSchemeV3Block(scheme) => scheme.id,
         }
     }
 
     /// Size of the inner value
     pub const fn inner_size(&self) -> usize {
         match self {
-            Self::BaseSigningBlock(ref block) => block.size,
-            Self::SignatureSchemeV2Block(ref scheme) => scheme.size,
-            Self::SignatureSchemeV3Block(ref scheme) => scheme.size,
+            Self::BaseSigningBlock(block) => block.size,
+            Self::SignatureSchemeV2Block(scheme) => scheme.size,
+            Self::SignatureSchemeV3Block(scheme) => scheme.size,
         }
     }
 
@@ -232,12 +232,10 @@ impl SigningBlock {
                 {
                     Some(v) => v,
                     None => {
-                        return Err(std::io::Error::other(
-                            format!(
-                                "Error: remaining size {} is too low to add padding block - try to manually pad the inner block",
-                                4096 - v - mem::size_of::<u32>() - mem::size_of::<u64>()
-                            ),
-                        ));
+                        return Err(std::io::Error::other(format!(
+                            "Error: remaining size {} is too low to add padding block - try to manually pad the inner block",
+                            4096 - v - mem::size_of::<u32>() - mem::size_of::<u64>()
+                        )));
                     }
                 };
                 vec![ValueSigningBlock::BaseSigningBlock(RawData::new(
@@ -287,12 +285,11 @@ impl SigningBlock {
                         {
                             Some(v) => v,
                             None => {
-                                return Err(std::io::Error::other(
-                                    format!(
-                                        "Error: starting at {} is less than {} (block size + size of u64)",
-                                        file_len - idx + MAGIC_LEN, block_size + SIZE_UINT64
-                                    ),
-                                ));
+                                return Err(std::io::Error::other(format!(
+                                    "Error: starting at {} is less than {} (block size + size of u64)",
+                                    file_len - idx + MAGIC_LEN,
+                                    block_size + SIZE_UINT64
+                                )));
                             }
                         };
                         let mut vec_full_block = vec![0; block_size + SIZE_UINT64];

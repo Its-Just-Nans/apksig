@@ -11,7 +11,7 @@ use crate::utils::MagicNumberDecoder;
 use crate::{
     add_space,
     signing_block::algorithms::Algorithms,
-    utils::{print_hexe, print_string, MyReader},
+    utils::{MyReader, print_hexe, print_string},
 };
 
 /// The `Digest` struct represents the digest of the signed data.

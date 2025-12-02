@@ -79,10 +79,18 @@ impl PartialEq<Algorithms> for u32 {
 impl std::fmt::Display for Algorithms {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match *self {
-            Self::RSASSA_PSS_256 => "RSASSA-PSS with SHA2-256 digest, SHA2-256 MGF1, 32 bytes of salt, trailer: 0xbc",
-            Self::RSASSA_PSS_512 => "RSASSA-PSS with SHA2-512 digest, SHA2-512 MGF1, 64 bytes of salt, trailer: 0xbc",
-            Self::RSASSA_PKCS1_v1_5_256 => "RSASSA-PKCS1-v1_5 with SHA2-256 digest. This is for build systems which require deterministic signatures.",
-            Self::RSASSA_PKCS1_v1_5_512 => "RSASSA-PKCS1-v1_5 with SHA2-512 digest. This is for build systems which require deterministic signatures.",
+            Self::RSASSA_PSS_256 => {
+                "RSASSA-PSS with SHA2-256 digest, SHA2-256 MGF1, 32 bytes of salt, trailer: 0xbc"
+            }
+            Self::RSASSA_PSS_512 => {
+                "RSASSA-PSS with SHA2-512 digest, SHA2-512 MGF1, 64 bytes of salt, trailer: 0xbc"
+            }
+            Self::RSASSA_PKCS1_v1_5_256 => {
+                "RSASSA-PKCS1-v1_5 with SHA2-256 digest. This is for build systems which require deterministic signatures."
+            }
+            Self::RSASSA_PKCS1_v1_5_512 => {
+                "RSASSA-PKCS1-v1_5 with SHA2-512 digest. This is for build systems which require deterministic signatures."
+            }
             Self::ECDSA_SHA2_256 => "ECDSA with SHA2-256 digest",
             Self::ECDSA_SHA2_512 => "ECDSA with SHA2-512 digest",
             Self::DSA_SHA2_256 => "DSA with SHA2-256 digest",
@@ -218,14 +226,14 @@ impl Algorithms {
         let hashed = &self.hash(raw_data);
         match &self {
             Self::RSASSA_PKCS1_v1_5_256 => {
-                use rsa::sha2::Sha256;
                 use rsa::Pkcs1v15Sign;
+                use rsa::sha2::Sha256;
                 let pkcs = Pkcs1v15Sign::new::<Sha256>();
                 private_key.sign(pkcs, hashed).map_err(|e| e.to_string())
             }
             Self::RSASSA_PKCS1_v1_5_512 => {
-                use rsa::sha2::Sha512;
                 use rsa::Pkcs1v15Sign;
+                use rsa::sha2::Sha512;
                 let pkcs = Pkcs1v15Sign::new::<Sha512>();
                 private_key.sign(pkcs, hashed).map_err(|e| e.to_string())
             }
