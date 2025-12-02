@@ -47,6 +47,7 @@ pub fn process_file(data: &[u8]) -> String {
 }
 
 fn multi_sha(data: &[u8]) -> (String, String, String) {
+    use md5::Md5;
     use sha1::{Digest, Sha1};
     use sha2::Sha256;
     use std::fmt::Write;
@@ -54,7 +55,9 @@ fn multi_sha(data: &[u8]) -> (String, String, String) {
     let mut hasher = Sha256::new();
     hasher.update(data);
     let sha256 = hasher.finalize().to_vec();
-    let md5 = md5::compute(data).to_vec();
+    let mut hasher = Md5::new();
+    hasher.update(data);
+    let md5 = hasher.finalize().to_vec();
     let mut hasher = Sha1::new();
     hasher.update(data);
     let sha1 = hasher.finalize().to_vec();

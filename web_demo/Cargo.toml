@@ -15,7 +15,7 @@ web-sys = { version = "0.3", features = [
     "Window",
 ] }
 apksig = { path = "../", default-features = false, features = ["serde"] }
-serde_json = { version = "1.0.138", features = ["preserve_order"] }
+serde_json = { version = "1.0.145", features = ["preserve_order"] }
 sha1 = "0.10.6"
-sha2 = "0.10.8"
-md5 = "0.7.0"
+sha2 = "0.10.9"
+md-5 = "0.10.6"
