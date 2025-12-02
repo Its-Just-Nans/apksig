@@ -126,14 +126,14 @@ pub fn find_eocd<R: Read + Seek>(
 }
 
 /// Create a fixed buffer of 4 bytes
-pub(crate) fn create_fixed_buffer_4(buf: &[u8]) -> [u8; 4] {
+pub(crate) const fn create_fixed_buffer_4(buf: &[u8]) -> [u8; 4] {
     let mut buffer = [0; 4];
     buffer.copy_from_slice(buf);
     buffer
 }
 
 /// Create a fixed buffer of 2 bytes
-pub(crate) fn create_fixed_buffer_2(buf: &[u8]) -> [u8; 2] {
+pub(crate) const fn create_fixed_buffer_2(buf: &[u8]) -> [u8; 2] {
     let mut buffer = [0; 2];
     buffer.copy_from_slice(buf);
     buffer

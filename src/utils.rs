@@ -110,7 +110,7 @@ impl MyReader {
     }
 
     /// Get the length of the data
-    pub(crate) fn len(&self) -> usize {
+    pub(crate) const fn len(&self) -> usize {
         self.data.len()
     }
 
@@ -210,7 +210,7 @@ impl MyReader {
 }
 
 /// Create a fixed buffer of 8 bytes
-pub(crate) fn create_fixed_buffer_8(buf: &[u8]) -> [u8; 8] {
+pub(crate) const fn create_fixed_buffer_8(buf: &[u8]) -> [u8; 8] {
     let mut buffer = [0; 8];
     buffer.copy_from_slice(buf);
     buffer

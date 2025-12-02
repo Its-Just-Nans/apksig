@@ -30,7 +30,7 @@ pub struct Digest {
 
 impl Digest {
     /// Creates a new `Digest` with the given signature algorithm ID and digest.
-    pub fn new(signature_algorithm_id: Algorithms, digest: Vec<u8>) -> Self {
+    pub const fn new(signature_algorithm_id: Algorithms, digest: Vec<u8>) -> Self {
         // size is len(signature_algorithm_id) + len(len(digest)) + len(digest)
         let size = mem::size_of::<u32>() + mem::size_of::<u32>() + digest.len();
         Self {
@@ -219,7 +219,7 @@ pub struct Certificate {
 
 impl Certificate {
     /// Creates a new `Certificate` with the given certificate.
-    pub fn new(certificate: Vec<u8>) -> Self {
+    pub const fn new(certificate: Vec<u8>) -> Self {
         Self {
             size: certificate.len(),
             certificate,
@@ -238,7 +238,10 @@ impl Certificate {
     /// Returns the MD5 hash of the certificate.
     #[cfg(feature = "hash")]
     pub fn md5_cert(&self) -> Vec<u8> {
-        md5::compute(&self.certificate).to_vec()
+        use md5::{Md5, Digest};
+        let mut hasher = Md5::new();
+        hasher.update(&self.certificate);
+        hasher.finalize().to_vec()
     }
 
     /// Decodes the certificate of the signed data.
@@ -351,7 +354,7 @@ pub struct Signature {
 
 impl Signature {
     /// Creates a new `Signature` with the given signature algorithm ID and signature.
-    pub fn new(signature_algorithm_id: Algorithms, signature: Vec<u8>) -> Self {
+    pub const fn new(signature_algorithm_id: Algorithms, signature: Vec<u8>) -> Self {
         // size is len(signature_algorithm_id) + len(len(signature)) + len(signature)
         let size = mem::size_of::<u32>() + mem::size_of::<u32>() + signature.len();
         Self {
@@ -525,7 +528,7 @@ pub struct PubKey {
 
 impl PubKey {
     /// Creates a new `PublicKey` with the given data.
-    pub fn new(data: Vec<u8>) -> Self {
+    pub const fn new(data: Vec<u8>) -> Self {
         Self {
             size: data.len(),
             data,
