@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use assert_cmd::prelude::*; // Add methods on commands
+    use assert_cmd::{cargo, prelude::*}; // Add methods on commands
     use predicates::prelude::*; // Used for writing assertions
     use std::process::Command; // Run programs
 
     #[test]
     fn run_with_no_args() -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = Command::cargo_bin("apksig")?; // Run the binary
+        let mut cmd = Command::new(cargo::cargo_bin!("apksig")); // Run the binary
 
         cmd.assert()
             .failure()
@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn run_with_apk() -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = Command::cargo_bin("apksig")?; // Run the binary
+        let mut cmd = Command::new(cargo::cargo_bin!("apksig")); // Run the binary
 
         cmd.arg("tests/sms2call-1.0.8.apk"); // Add arguments to the command
 
@@ -30,7 +30,7 @@ mod tests {
 
     #[test]
     fn run_with_wrong_path() -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = Command::cargo_bin("apksig")?; // Run the binary
+        let mut cmd = Command::new(cargo::cargo_bin!("apksig")); // Run the binary
 
         cmd.arg("tests/sms2call-1.0.8.not_present"); // Add arguments to the command
 
@@ -46,7 +46,7 @@ mod tests {
     #[ignore]
     #[test]
     fn run_with_apk_without_signature() -> Result<(), Box<dyn std::error::Error>> {
-        let mut cmd = Command::cargo_bin("apksig")?; // Run the binary
+        let mut cmd = Command::new(cargo::cargo_bin!("apksig")); // Run the binary
 
         cmd.arg("tests/sms2call-1.0.8_no_sig.apk"); // Add arguments to the command
 
